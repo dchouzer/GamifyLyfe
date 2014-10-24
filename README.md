@@ -19,4 +19,4 @@ https://github.com/settings/ssh
 git@github.com:leeviana/gamify-lyfe.git 
 	This will make a new gamify-lyfe folder
 
-4) 
+4) Running 'python manage.py runserver 0.0.0.0:8000' will run the django instance on localhost:8000
