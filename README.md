@@ -16,7 +16,8 @@ https://help.github.com/articles/generating-ssh-keys/
 https://github.com/settings/ssh
 
 3) Clone the git repository (in your shared folder would probably be best for really local development)
-git@github.com:leeviana/gamify-lyfe.git 
-	This will make a new gamify-lyfe folder
+'git clone git@github.com:leeviana/gamify-lyfe.git'
+
+(This will make a new gamify-lyfe folder)
 
 4) Running 'python manage.py runserver 0.0.0.0:8000' will run the django instance on localhost:8000
