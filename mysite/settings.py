@@ -118,3 +118,4 @@ TEMPLATE_CONTEXT_PROCESSORS += (
 # from django.conf.global_settings import ...
 execfile(os.path.join(PROJ_ROOT, PROJ_NAME, 'settings_social_auth.py'))
 execfile(os.path.join(PROJ_ROOT, PROJ_NAME, 'settings_beers.py'))
+execfile(os.path.join(PROJ_ROOT, PROJ_NAME, 'settings_core.py'))
