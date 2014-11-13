@@ -183,3 +183,7 @@ class Comment(models.Model):
         db_table = u'Comment'
     def __unicode__(self):
         return self.content
+
+#form model to store to media/files/CURRENTMONTH/CURRENTDATE
+class Document(models.Model):
+    docfile = models.FileField(upload_to='files/%Y/%m/%d')

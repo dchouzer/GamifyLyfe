@@ -10,5 +10,7 @@
 {% endfor %}
 </ul>
 {{drinkers.count}} drinker{{drinkers|pluralize}} found in the database.
+
+<li><a href="{% url 'beers.views.all_drinkers' %}">This page</a></li> 
 </p>
 {% endblock %}

@@ -4,4 +4,5 @@ urlpatterns = patterns('core.views',
     url(r'^$', 'dashboard'),
     url(r'^login$', 'login'),
     url(r'^logout$', 'logout'),
+    url(r'^list$', 'list', name='list'),
 )
