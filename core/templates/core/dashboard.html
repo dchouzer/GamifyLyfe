@@ -1,12 +1,12 @@
 {% extends "core/base.html" %}
 
-{% block heading %}All Drinkers{% endblock %}
+{% block heading %}All Users{% endblock %}
 
 {% block content %}
-<p>Click on drinker below to view more information:
+<p>Click on user below to view more information:
 <ul>
 {% for user in users %}
-    <li>{{user.username}}</li>
+    <li><a href="{% url 'core.views.profile' user.username %}">{{user.username}}</a></li>
 {% endfor %}
 </ul>
 {{users.count}} user{{users|pluralize}} found in the database.

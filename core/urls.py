@@ -8,4 +8,5 @@ if settings.DEBUG:
 	    url(r'^login$', 'login'),
 	    url(r'^logout$', 'logout'),
 	    url(r'^list$', 'list'),
+        url(r'^profile/(?P<username>[^/]+)$', 'profile'),
 	) + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

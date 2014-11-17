@@ -20,6 +20,12 @@ def dashboard(request):
         { 'users' : LyfeUser.objects.all().order_by('username') },
         context_instance=RequestContext(request))
 
+def profile(request, username):
+    lyfeuser = get_object_or_404(LyfeUser, pk=username)
+    return render_to_response('core/profile.html',
+    { 'lyfeuser' : lyfeuser },
+    context_instance=RequestContext(request))
+    
 def list(request):
 	if request.method == 'POST':
 		form = DocumentForm(request.POST, request.FILES)
@@ -37,9 +43,3 @@ def list(request):
 		{'documents': documents, 'form':form},
 		context_instance=RequestContext(request)
 	)
-    
-def profile(request):
-    lyfeuser = get_object_or_404(LyfeUser, pk=username)
-    return render_to_response('core/profile.html',
-        { 'lyfeuser' : lyfeuser },
-        context_instance=RequestContext(request))

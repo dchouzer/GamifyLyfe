@@ -31,7 +31,7 @@ class Student(models.Model):
 """
 class LyfeUser(models.Model):
     #default primary key id = lyfeuserID
-    username = models.CharField(max_length=20)
+    username = models.CharField(max_length=20, primary_key = True)
     cur_points = models.IntegerField()
     total_points = models.IntegerField()
     account_creation_date = models.DateField(auto_now_add = True)
