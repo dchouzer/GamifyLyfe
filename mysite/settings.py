@@ -109,6 +109,13 @@ STATIC_ROOT = os.path.join(PROJ_ROOT, 'static')
 # Example: "http://media.lawrence.com/static/"
 STATIC_URL = '/static/'
 
+STATICFILES_DIRS = (
+    os.path.join(
+        os.path.dirname(__file__),
+        'static',
+    ),
+)
+
 from django.conf.global_settings import TEMPLATE_CONTEXT_PROCESSORS
 TEMPLATE_CONTEXT_PROCESSORS += (
     'django.core.context_processors.request',
