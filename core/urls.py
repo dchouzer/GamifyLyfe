@@ -8,4 +8,4 @@ if settings.DEBUG:
 	    url(r'^login$', 'login'),
 	    url(r'^logout$', 'logout'),
 	    url(r'^list$', 'list'),
-	) + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+	)
