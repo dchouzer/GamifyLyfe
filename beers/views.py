@@ -7,10 +7,23 @@ from beers.models import Beer, Bar, Drinker, Frequents, Likes
 from django.forms.models import ModelForm, inlineformset_factory
 from django.contrib.auth import logout as auth_logout
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.forms import UserCreationForm
 
 def login(request):
     return render_to_response('beers/login.html',
         {},
+        context_instance=RequestContext(request))
+
+def register(request):
+    if request.method == 'POST':
+        form = UserCreationForm(request.POST)
+        if form.is_valid():
+            form.save()
+            return HttpResponseRedirect(reverse(('beers.views.all_drinkers')))
+    else:
+        form = UserCreationForm()
+    return render_to_response('beers/register.html',
+        { 'form': form, },
         context_instance=RequestContext(request))
 
 def logout(request):

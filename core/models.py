@@ -56,11 +56,11 @@ class GoalGroup(models.Model):
     class Meta:
         db_table = u'GoalGroup'
     def __unicode__(self):
-        return self.pk
+        return str(self.pk)
 
 class Goal(models.Model):
     goal_id = models.ForeignKey(GoalGroup)
-    order_num = models.IntegerField() # 0 -> single goal, 1+ -> multipart goal
+    order_num = models.IntegerField() # 0 to multiple
     base_points = models.IntegerField()
     friend_points = models.IntegerField(default = '0')
     time_points = models.IntegerField(default = '0')
@@ -92,7 +92,7 @@ class Goal(models.Model):
         unique_together = ('id', 'order_num')
         db_table = u'Goal'
     def __unicode__(self):
-        return self.pk
+        return str(self.pk)
         
 class Group(models.Model):
     #default primary key id
@@ -102,7 +102,7 @@ class Group(models.Model):
     class Meta:
         db_table = u'Group'
     def __unicode__(self):
-        return self.pk
+        return str(self.pk)
         
 class Membership(models.Model):
     group_id = models.ForeignKey(Group)
@@ -112,7 +112,7 @@ class Membership(models.Model):
         unique_together = ('group_id', 'user_id')
         db_table = u'Membership'
     def __unicode__(self):
-        return self.pk
+        return str(self.pk)
         
 class ShareSetting(models.Model):
     goal_id = models.ForeignKey(GoalGroup)
@@ -123,7 +123,7 @@ class ShareSetting(models.Model):
         unique_together = ('goal_id', 'sharee')
         db_table = u'ShareSetting'
     def __unicode__(self):
-        return self.pk
+        return str(self.pk)
         
 class Reward(models.Model):
     # default reward_id
@@ -158,7 +158,7 @@ class Friend(models.Model):
         unique_together = ('requester_id', 'recipient_id')
         db_table = u'Friend'
     def __unicode__(self):
-        return self.pk
+        return str(self.pk)
         
 class Update(models.Model):
     # default update ID

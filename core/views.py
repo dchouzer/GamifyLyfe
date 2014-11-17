@@ -37,3 +37,9 @@ def list(request):
 		{'documents': documents, 'form':form},
 		context_instance=RequestContext(request)
 	)
+    
+def profile(request):
+    lyfeuser = get_object_or_404(LyfeUser, pk=username)
+    return render_to_response('core/profile.html',
+        { 'lyfeuser' : lyfeuser },
+        context_instance=RequestContext(request))

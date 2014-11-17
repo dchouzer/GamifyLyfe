@@ -1,0 +1,11 @@
+{% extends "core/base.html" %}
+
+{% block heading %}Lyfe User Information: {{lyfeuser.name}}{% endblock %}
+
+{% block content %}
+Profile information here<br/>
+<br/>
+<a href="{% url 'core.views.dashboard' %}">dashboard</a>
+</p>
+
+{% endblock %}
