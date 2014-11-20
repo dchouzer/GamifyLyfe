@@ -52,11 +52,12 @@ class LyfeUser(models.Model):
 class GoalGroup(models.Model):
     #default primary key id = goalgroupID
     ownerid = models.ForeignKey(LyfeUser)
+    name = models.CharField(max_length=30)
     
     class Meta:
         db_table = u'GoalGroup'
     def __unicode__(self):
-        return str(self.pk)
+        return self.name
 
 class Goal(models.Model):
     goal_id = models.ForeignKey(GoalGroup)
@@ -64,14 +65,15 @@ class Goal(models.Model):
     base_points = models.IntegerField()
     friend_points = models.IntegerField(default = '0')
     time_points = models.IntegerField(default = '0')
+    name = models.CharField(max_length=30)
     
     ACTIVE = 0
     FUTURE = -1
     COMPLETED = 1
     STATUS_CHOICES = (
-        (ACTIVE, 'Active'),
-        (FUTURE, 'Future'),
-        (COMPLETED, 'Completed')
+        (ACTIVE, 'active'),
+        (FUTURE, 'future'),
+        (COMPLETED, 'completed')
     )
     status = models.IntegerField(choices=STATUS_CHOICES, default=FUTURE)
     
@@ -79,9 +81,9 @@ class Goal(models.Model):
     MODERATE = 1
     HARD = 2
     DIFF_CHOICES = (
-        (EASY, 'Easy'),
-        (MODERATE, 'Moderate'),
-        (HARD, 'Hard')
+        (EASY, 'easy'),
+        (MODERATE, 'moderate'),
+        (HARD, 'hard')
     )
     difficulty = models.IntegerField(choices=DIFF_CHOICES, default=EASY)
     est_date = models.DateField(auto_now_add = True)
@@ -92,7 +94,7 @@ class Goal(models.Model):
         unique_together = ('id', 'order_num')
         db_table = u'Goal'
     def __unicode__(self):
-        return str(self.pk)
+        return self.name
         
 class Group(models.Model):
     #default primary key id

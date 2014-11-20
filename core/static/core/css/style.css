@@ -3,3 +3,15 @@ body {
     background: white;
     font-family: Verdana, Arial, Helvetica, sans-serif;
 }
+
+.active {
+    color: orange;
+}
+
+.future {
+    color: grey;
+}
+
+.completed {
+    color: green;
+}

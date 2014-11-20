@@ -3,12 +3,45 @@
 {% block heading %}All Users{% endblock %}
 
 {% block content %}
-<p>Click on user below to view more information:
-<ul>
-{% for user in users %}
-    <li><a href="{% url 'core.views.profile' user.username %}">{{user.username}}</a></li>
-{% endfor %}
-</ul>
-{{users.count}} user{{users|pluralize}} found in the database.
+<p>
+Actually logged in as <a href="{% url 'core.views.profile' user.username %}">user</a><br>
+Pretending to be logged in as <a href="{% url 'core.views.profile' lyfeuser.username %}">{{ lyfeuser.username}}</a></li>
+    <h3>PROFILE INFO</h3>
+    <ul>
+    <li>Points: {{ lyfeuser.cur_points }} / {{ lyfeuser.total_points }}</li>
+    <li>Last active date? {{ lyfeuser.last_active_date }}</li>
+    <li>Last Friend Points Given: {{ lyfeuser.last_fp_given }}</li>
+    <li>Avatar: <br>
+    <img src="{{ lyfeuser.avatar.url }}" /></li>
+    </ul>
+    
+    <h3>GOALS</h3>
+    <ul>
+    {% for goalgroup, groupgoals in goals.items %}
+        <li>{{ goalgroup }}
+        <ul>
+            {% for goal in groupgoals %}
+                <li><span class="{{goal.get_status_display}}"><b>{{ goal }}</b></span> ({{goal.get_status_display}})
+                
+                {% if goal.status == 0 %}
+                    | +Submit Progress Update (TODO: link with groupgoal)
+                {% endif %}
+                
+                <br>
+                Base Points: {{ goal.base_points }} | Friend Points: {{ goal.friend_points }} | Time Points: {{ goal.time_points }}<br>
+                Start Date: {{ goal.start_date }} | Completion Date: {{ goal.completion_date }}
+                <p>+Add new action item (TODO: link with goalgroup id) </p>
+            {% endfor %}
+        </ul>
+        <p>+Add new goal (TODO: link to goal add popup)</p>
+    {% endfor %}
+    </ul>
+    
+    <h3>NEWSFEED</h3>
+    <ul>
+        TODO: Pass list of friend's updates reverse ordered by timestamp and display
+    </ul>
+    <br>
+    
 </p>
 {% endblock %}

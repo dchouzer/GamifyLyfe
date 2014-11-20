@@ -8,6 +8,6 @@ if settings.DEBUG:
 	    url(r'^$', 'dashboard'),
 	    url(r'^login$', 'login'),
 	    url(r'^logout$', 'logout'),
-	    url(r'^list$', 'list'),
+	    url(r'^list$', 'avatar'),
         url(r'^profile/(?P<username>[^/]+)$', 'profile'),
 	)
