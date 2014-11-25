@@ -32,16 +32,16 @@ def profile(request, username):
     current_user = request.user
     lyfeuser = get_object_or_404(LyfeUser, pk=username)
     
-    if current_user.pk != lyfeuser.pk
+    if current_user.pk != lyfeuser.pk:
         friendship = Friend.objects.get(requester_id=current_user.pk, recipient_id = lyfeuser.pk)
         if friendship:
+        	print "fill?"
             # we know user has friend requested other user and can change behavior depending on if accepted or not
         # else friendship is null
     else:
         # user is current user, should be able to see everything
-    
-    goalgroups = list(GoalGroup.objects.filter(ownerid=lyfeuser.pk))
-    goals = {}
+	    goalgroups = list(GoalGroup.objects.filter(ownerid=lyfeuser.pk))
+	    goals = {}
     
     for goalgroup in goalgroups:
         goals[goalgroup] = list(Goal.objects.filter(goal_id=goalgroup.pk).order_by('order_num'))
