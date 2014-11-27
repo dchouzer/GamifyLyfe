@@ -1,4 +1,5 @@
 from django import template
+from core.models import LyfeUser
 
 register = template.Library()
 
@@ -9,3 +10,13 @@ def user_greeting_name(value):
         return value.first_name
     else:
         return value.username
+
+@register.filter(name='user_avatar_url')
+def user_avatar_url(username):
+    """Returns URL of user's avatar"""
+    try:
+        user = LyfeUser.objects.get(pk = username)
+        return user.avatar.url
+    except LyfeUser.DoesNotExist:
+        print "LyfeUser doesn't exist"
+        return

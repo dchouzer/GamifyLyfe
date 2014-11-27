@@ -1,11 +1,20 @@
 {% extends "core/base.html" %}
-
 {% block heading %}All Users{% endblock %}
 
 {% block content %}
+{% load extras %}
 <p>
 Actually logged in as <a href="{% url 'core.views.profile' user.username %}">user</a><br>
 Pretending to be logged in as <a href="{% url 'core.views.profile' lyfeuser.username %}">{{ lyfeuser.username}}</a></li>
+    {% if friend_requests %}
+        <h3>FRIEND REQUESTS</h3>
+        
+        {% for request in friend_requests %}
+        {{ request.requester_id }}<br>
+        <a href="{% url 'core.views.addfriend' request.requester_id %}">Add Friend</a> | Deny
+        {% endfor %}
+    {% endif %}
+    
     <h3>PROFILE INFO</h3>
     <ul>
     <li>Points: {{ lyfeuser.cur_points }} / {{ lyfeuser.total_points }}</li>
@@ -38,6 +47,21 @@ Pretending to be logged in as <a href="{% url 'core.views.profile' lyfeuser.user
     </ul>
     
     <h3>NEWSFEED</h3>
+    <h5>FRIENDS</h5>
+    {% if friends %}
+        {% for friend in friends %}
+            <a href = "{% url 'core.views.profile' friend.recipient_id %}"><img src = "{{friend.recipient_id|user_avatar_url}}"></a>
+        {% endfor %}
+        {% else %}
+        No friends :(
+    {% endif %}
+    
+    {% if following %}
+    <h5>FOLLOWING</h5>
+        {% for follow in following %}
+            <a href = "{% url 'core.views.profile' follow.recipient_id %}"><img src = "{{follow.recipient_id|user_avatar_url}}"></a>
+        {% endfor %}
+    {% endif %}
     <ul>
         TODO: Pass list of friend's updates reverse ordered by timestamp and display
     </ul>

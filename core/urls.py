@@ -10,4 +10,6 @@ if settings.DEBUG:
 	    url(r'^logout$', 'logout'),
 	    url(r'^list$', 'avatar'),
         url(r'^profile/(?P<username>[^/]+)$', 'profile'),
+        url(r'^addfriend/(?P<username>[^/]+)$', 'addfriend'),
+        url(r'^unfriend/(?P<username>[^/]+)$', 'unfriend'),
 	)

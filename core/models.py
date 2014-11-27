@@ -37,7 +37,7 @@ class LyfeUser(models.Model):
     account_creation_date = models.DateField(auto_now_add = True)
     last_active_date = models.DateField(auto_now=True)
     last_fp_given = models.DateField(null=True, blank=True)
-    avatar = models.FileField(null=True, blank=True)
+    avatar = models.FileField(default='settings.MEDIA_ROOT/files/default.jpg')
    
     class Meta:
         # Without being set, the default table name will start with the app
@@ -160,7 +160,7 @@ class Friend(models.Model):
         unique_together = ('requester_id', 'recipient_id')
         db_table = u'Friend'
     def __unicode__(self):
-        return str(self.pk)
+        return self.requester_id.pk + "|" + self.recipient_id.pk
         
 class Update(models.Model):
     # default update ID

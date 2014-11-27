@@ -4,9 +4,15 @@
 
 {% block content %}
 
-if there is no loggedinuser, profileuser entry in the database and logginuser != profile user then<br>
-+ Add friend<br><br>
+{% if addfriend %}
+<a href="{% url 'core.views.addfriend' lyfeuser.username %}">+ Add Friend/Follow</a>
+{% elif not currentuser %}
+<a href="{% url 'core.views.unfriend' lyfeuser.username %}">- Unfriend/Unfollow</a>
+{% elif lyfeuser.username != user.username %}
+<!-- doesn't work right now because authentication doesn't work, use currentuser as workaround -->
+{% endif %}
 
+<br><br>
 Point counts
 
     <h3>PROFILE INFORMATION</h3>
