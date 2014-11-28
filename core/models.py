@@ -164,7 +164,7 @@ class Friend(models.Model):
         
 class Update(models.Model):
     # default update ID
-    user_id = models.ForeignKey(LyfeUser)
+    user_id = models.ForeignKey(LyfeUser) # helpful for filtering updates
     goal_id = models.ForeignKey(GoalGroup)
     timestamp = models.DateTimeField(auto_now_add = True)
     content = models.CharField(max_length=50) #file ref or something?

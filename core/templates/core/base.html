@@ -12,7 +12,8 @@
     {% block script %}{% endblock %}
   </head>
   <body>
-    <h1><img src="{{STATIC_URL}}core/img/beer.jpg" style="float:right"/> Django <a href="{% url 'core.views.dashboard' %}">Gamify Lyfe</a></h1>
+  <div id = "wrapper">
+    <h1><img src="{{STATIC_URL}}core/img/GamifyLyfe.png" style="float:right"/><a href="{% url 'core.views.dashboard' %}">Gamify Lyfe</a></h1>
     <hr/>
     <h2 id="heading">{% block heading %}{% endblock %}</h2>
     {% if user.is_authenticated %}
@@ -34,5 +35,6 @@
     {% endblock %}
     <div id="content">{% block content %}{% endblock %}</div>
     <hr/>
+    </div>
   </body>
 </html>

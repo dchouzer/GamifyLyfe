@@ -1,5 +1,12 @@
 {% extends "core/base.html" %}
 {% block heading %}All Users{% endblock %}
+{% block script %}
+<script type="text/javascript">
+function toggleDiv(divId) {
+   $("#"+divId).toggle();
+}
+</script>
+{% endblock %}
 
 {% block content %}
 {% load extras %}
@@ -33,7 +40,16 @@ Pretending to be logged in as <a href="{% url 'core.views.profile' lyfeuser.user
                 <li><span class="{{goal.get_status_display}}"><b>{{ goal }}</b></span> ({{goal.get_status_display}})
                 
                 {% if goal.status == 0 %}
-                    | +Submit Progress Update (TODO: link with groupgoal)
+                    <a href="javascript:toggleDiv('update_{{goalgroup.pk}}');">+ Submit Progress Update</a>
+                    <div style="display: none;" id = "update_{{goalgroup.pk}}">
+                        <form method="post" action="{% url 'core.views.post_update' goalgroup.pk %}">
+                        {% csrf_token %}
+                        <p>
+                        {{ updateform }}
+                        </p>
+                        <input type="submit" value="Submit Update"/>
+                        </form>
+                    </div>
                 {% endif %}
                 
                 <br>
@@ -55,15 +71,21 @@ Pretending to be logged in as <a href="{% url 'core.views.profile' lyfeuser.user
         {% else %}
         No friends :(
     {% endif %}
-    
+    <br><br>
+    <!-- Kind of pointless
     {% if following %}
     <h5>FOLLOWING</h5>
         {% for follow in following %}
             <a href = "{% url 'core.views.profile' follow.recipient_id %}"><img src = "{{follow.recipient_id|user_avatar_url}}"></a>
         {% endfor %}
     {% endif %}
+    -->
     <ul>
-        TODO: Pass list of friend's updates reverse ordered by timestamp and display
+        {% for update in newsfeed %}
+            <li> Update to {{ update.goal_id }} | {{ update.timestamp }}<br>
+            {{ update.content }}
+            <br>
+        {% endfor %}
     </ul>
     <br>
     

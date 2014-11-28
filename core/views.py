@@ -6,6 +6,7 @@ from core.models import LyfeUser, GoalGroup, Goal, Group, Membership, ShareSetti
 from core.forms import DocumentForm
 from django.contrib.auth import logout as auth_logout
 from django.db import IntegrityError
+from django.forms.models import ModelForm, inlineformset_factory
 
 FAKE_USER = get_object_or_404(LyfeUser, pk='Solix') # replace all instances with request.user when authentication works
 
@@ -35,10 +36,21 @@ def dashboard(request):
     friends = list(Friend.objects.filter(requester_id = lyfeuser, is_approved = True))
     
     # following
-    following = list(Friend.objects.filter(requester_id = lyfeuser, is_approved = False))
+    #following = list(Friend.objects.filter(requester_id = lyfeuser, is_approved = False))
+    
+    # newsfeed
+    friendIDs = []
+    friendIDs.append(FAKE_USER.pk) # you can see your own updates
+    for friend in friends:
+        friendIDS.append(friend.recipient_id)
+        
+    newsfeed = Update.objects.filter(user_id_id__in=friendIDs).order_by('timestamp').reverse()
+    
+    # update form
+    updateform = UpdateForm()
     
     return render_to_response('core/dashboard.html',
-        { 'lyfeuser' : lyfeuser, 'goals' : goals, 'friend_requests' : friend_requests, 'friends' : friends, 'following' : following },
+        { 'lyfeuser' : lyfeuser, 'goals' : goals, 'friend_requests' : friend_requests, 'friends' : friends, 'updateform' : updateform, 'newsfeed' : newsfeed },
         context_instance=RequestContext(request))
 
 def profile(request, username):
@@ -107,7 +119,6 @@ def unfriend(request, username):
         
     return HttpResponseRedirect(reverse('core.views.profile', kwargs={'username' : username}))
 
-
 def avatar(request):
 	if request.method == 'POST':
 		form = DocumentForm(request.POST, request.FILES)
@@ -125,3 +136,28 @@ def avatar(request):
 		{'documents': documents, 'form':form},
 		context_instance=RequestContext(request)
 	)
+
+def post_update(request, goalgroup):
+    updateForm = UpdateForm(request.POST)
+    # Remember to set drinker.name before updating the database, because
+    # PartialDrinkerForm doesn't contain this information:
+    update = updateForm.save(commit=False)
+    update.goal_id_id = goalgroup
+    update.user_id_id = FAKE_USER.pk
+    update.save()
+    
+    return HttpResponseRedirect(reverse('core.views.dashboard'))
+
+class UpdateForm(ModelForm):
+    class Meta:
+        model = Update
+        fields = ['content']
+        
+    #user_id = models.ForeignKey(LyfeUser)
+    #goal_id = models.ForeignKey(GoalGroup)
+    #timestamp = models.DateTimeField(auto_now_add = True)
+    #content = models.CharField(max_length=50) #file ref or something?
+    
+class CommentForm(ModelForm):
+    class Meta:
+        model = Comment
