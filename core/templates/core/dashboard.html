@@ -11,8 +11,7 @@ function toggleDiv(divId) {
 {% block content %}
 {% load extras %}
 <p>
-Actually logged in as <a href="{% url 'core.views.profile' user.username %}">user</a><br>
-Pretending to be logged in as <a href="{% url 'core.views.profile' lyfeuser.username %}">{{ lyfeuser.username}}</a></li>
+Profile: <a href="{% url 'core.views.profile' lyfeuser.username %}">{{ lyfeuser.username}}</a></li>
     {% if friend_requests %}
         <h3>FRIEND REQUESTS</h3>
         

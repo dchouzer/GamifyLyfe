@@ -1,4 +1,5 @@
 from django.db import models
+from django.contrib.auth.models import User
 
 # https://docs.djangoproject.com/en/1.7/ref/models/fields/
 # Django adds primary key for each table automatically, the id field
@@ -31,14 +32,15 @@ class Student(models.Model):
 """
 class LyfeUser(models.Model):
     #default primary key id = lyfeuserID
-    username = models.CharField(max_length=20, primary_key = True)
-    cur_points = models.IntegerField()
-    total_points = models.IntegerField()
+    username = models.CharField(max_length=30, primary_key = True)
+    cur_points = models.IntegerField(default = '0')
+    total_points = models.IntegerField(default = '0')
     account_creation_date = models.DateField(auto_now_add = True)
     last_active_date = models.DateField(auto_now=True)
     last_fp_given = models.DateField(null=True, blank=True)
-    avatar = models.FileField(default='settings.MEDIA_ROOT/files/default.jpg')
-   
+    avatar = models.FileField(default='./default.jpg')
+    user = models.ForeignKey(User, unique=True)
+    
     class Meta:
         # Without being set, the default table name will start with the app
         # name followed by '_'; we just want the simple table names here:

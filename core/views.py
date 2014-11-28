@@ -8,8 +8,28 @@ from django.contrib.auth import logout as auth_logout
 from django.db import IntegrityError
 from django.forms.models import ModelForm, inlineformset_factory
 from django.contrib.auth.forms import UserCreationForm
+from django.contrib.auth.models import User
+from django import forms
 
-FAKE_USER = get_object_or_404(LyfeUser, pk='Solix') # replace all instances with request.user when authentication works
+class MyRegistrationForm(UserCreationForm):
+    #avatar = forms.FileField(required = False)
+
+    class Meta:
+        model = User
+        fields = ('username', 'email', 'password1', 'password2')        
+
+    def save(self,commit = True):   
+        newuser = super(MyRegistrationForm, self).save(commit = False)
+        #newuser.avatar = self.cleaned_data['avatar']
+        if commit:
+            newuser.save()
+            #newlyfeuser = LyfeUser(avatar = self.cleaned_data['avatar'], username = newuser.username, user_id = newuser.pk)
+            newlyfeuser = LyfeUser(username = newuser.username, user_id = newuser.pk)
+            newlyfeuser.save()
+        
+        return newuser
+
+#FAKE_USER = get_object_or_404(LyfeUser, pk='Solix') # replace all instances with request.user when authentication works
 
 def home(request):
     if request.user.is_authenticated():
@@ -21,12 +41,12 @@ def home(request):
 
 def register(request):
     if request.method == 'POST':
-        form = UserCreationForm(request.POST)
+        form = MyRegistrationForm(request.POST)
         if form.is_valid():
             form.save()
             return HttpResponseRedirect(reverse(('core.views.login')))
     else:
-        form = UserCreationForm()
+        form = MyRegistrationForm()
     return render_to_response('core/register.html',
         { 'form': form, },
         context_instance=RequestContext(request))
@@ -41,8 +61,7 @@ def logout(request):
     return HttpResponseRedirect(reverse('core.views.login'))
 
 def dashboard(request):
-    lyfeuser = FAKE_USER
-    
+    lyfeuser = get_object_or_404(LyfeUser, pk=request.user.username)
     goalgroups = list(GoalGroup.objects.filter(ownerid=lyfeuser.pk))
     goals = {}
     
@@ -61,7 +80,7 @@ def dashboard(request):
     
     # newsfeed
     friendIDs = []
-    friendIDs.append(FAKE_USER.pk) # you can see your own updates
+    friendIDs.append(lyfeuser.pk) # you can see your own updates
     for friend in friends:
         friendIDs.append(friend.recipient_id)
         
@@ -75,7 +94,7 @@ def dashboard(request):
         context_instance=RequestContext(request))
 
 def profile(request, username):
-    current_user = FAKE_USER
+    current_user = get_object_or_404(LyfeUser, pk=request.user.username)
     lyfeuser = get_object_or_404(LyfeUser, pk=username)
     addfriend = False
     currentuser = False
@@ -101,7 +120,7 @@ def profile(request, username):
     context_instance=RequestContext(request))
 
 def addfriend(request, username):
-    current_user = FAKE_USER
+    current_user = get_object_or_404(LyfeUser, pk=request.user.username)
     lyfeuser = get_object_or_404(LyfeUser, pk=username)
     try:
         friend_request = Friend(requester_id = current_user, recipient_id = lyfeuser)
@@ -122,7 +141,8 @@ def addfriend(request, username):
     return HttpResponseRedirect(reverse('core.views.profile', kwargs={'username' : username}))
     
 def unfriend(request, username):
-    current_user = FAKE_USER
+    current_user = get_object_or_404(LyfeUser, pk=request.user.username)
+    
     lyfeuser = get_object_or_404(LyfeUser, pk=username)
     
     try:
@@ -164,7 +184,7 @@ def post_update(request, goalgroup):
     # PartialDrinkerForm doesn't contain this information:
     update = updateForm.save(commit=False)
     update.goal_id_id = goalgroup
-    update.user_id_id = FAKE_USER.pk
+    update.user_id_id = request.user.username
     update.save()
     
     return HttpResponseRedirect(reverse('core.views.dashboard'))

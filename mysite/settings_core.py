@@ -3,3 +3,5 @@ INSTALLED_APPS += (
 )
 
 LOGIN_REDIRECT_URL = '/core/dashboard'
+
+#AUTH_PROFILE_MODULE = 'core.LyfeUser'
