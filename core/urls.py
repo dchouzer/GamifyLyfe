@@ -5,8 +5,10 @@ from django.contrib.staticfiles.urls import staticfiles_urlpatterns
 
 if settings.DEBUG:
 	urlpatterns = patterns('core.views',
-	    url(r'^$', 'dashboard'),
+	    url(r'^$', 'home'),
+	    url(r'^dashboard$', 'dashboard'),
 	    url(r'^login$', 'login'),
+        url(r'^register$', 'register'),
 	    url(r'^logout$', 'logout'),
 	    url(r'^list$', 'avatar'),
         url(r'^profile/(?P<username>[^/]+)$', 'profile'),

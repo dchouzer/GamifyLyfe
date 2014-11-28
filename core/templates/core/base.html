@@ -13,7 +13,7 @@
   </head>
   <body>
   <div id = "wrapper">
-    <h1><img src="{{STATIC_URL}}core/img/GamifyLyfe.png" style="float:right"/><a href="{% url 'core.views.dashboard' %}">Gamify Lyfe</a></h1>
+    <h1><img src="{{STATIC_URL}}core/img/GamifyLyfe.png" style="float:right"/><a href="{% url 'core.views.home' %}">Gamify Lyfe</a></h1>
     <hr/>
     <h2 id="heading">{% block heading %}{% endblock %}</h2>
     {% if user.is_authenticated %}
@@ -28,9 +28,9 @@
     {% endif %}
     {% block login %}
       {% if not user.is_authenticated %}
-        <p><a href="{% url 'beers.views.login' %}?next={{request.get_full_path}}">Login</a></p>
+        <p><a href="{% url 'core.views.login' %}?next={{request.get_full_path}}">Login</a></p>
       {% else %}
-        <p><a href="{% url 'beers.views.logout' %}">Logout</a></p>
+        <p><a href="{% url 'core.views.logout' %}">Logout</a></p>
       {% endif %}
     {% endblock %}
     <div id="content">{% block content %}{% endblock %}</div>

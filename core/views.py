@@ -7,8 +7,29 @@ from core.forms import DocumentForm
 from django.contrib.auth import logout as auth_logout
 from django.db import IntegrityError
 from django.forms.models import ModelForm, inlineformset_factory
+from django.contrib.auth.forms import UserCreationForm
 
 FAKE_USER = get_object_or_404(LyfeUser, pk='Solix') # replace all instances with request.user when authentication works
+
+def home(request):
+    if request.user.is_authenticated():
+        return HttpResponseRedirect(reverse(('core.views.dashboard')))
+    else:
+        return render_to_response('core/login.html',
+            {},
+            context_instance=RequestContext(request))
+
+def register(request):
+    if request.method == 'POST':
+        form = UserCreationForm(request.POST)
+        if form.is_valid():
+            form.save()
+            return HttpResponseRedirect(reverse(('core.views.login')))
+    else:
+        form = UserCreationForm()
+    return render_to_response('core/register.html',
+        { 'form': form, },
+        context_instance=RequestContext(request))
 
 def login(request):
     return render_to_response('core/login.html',
@@ -17,7 +38,7 @@ def login(request):
 
 def logout(request):
     auth_logout(request)
-    return HttpResponseRedirect(reverse('core.views.dashboard'))
+    return HttpResponseRedirect(reverse('core.views.login'))
 
 def dashboard(request):
     lyfeuser = FAKE_USER
