@@ -42,7 +42,7 @@ def dashboard(request):
     friendIDs = []
     friendIDs.append(FAKE_USER.pk) # you can see your own updates
     for friend in friends:
-        friendIDS.append(friend.recipient_id)
+        friendIDs.append(friend.recipient_id)
         
     newsfeed = Update.objects.filter(user_id_id__in=friendIDs).order_by('timestamp').reverse()
     

@@ -65,7 +65,7 @@ class Goal(models.Model):
     base_points = models.IntegerField()
     friend_points = models.IntegerField(default = '0')
     time_points = models.IntegerField(default = '0')
-    name = models.CharField(max_length=30)
+    name = models.CharField(max_length=100)
     
     ACTIVE = 0
     FUTURE = -1
@@ -167,7 +167,7 @@ class Update(models.Model):
     user_id = models.ForeignKey(LyfeUser) # helpful for filtering updates
     goal_id = models.ForeignKey(GoalGroup)
     timestamp = models.DateTimeField(auto_now_add = True)
-    content = models.CharField(max_length=50) #file ref or something?
+    content = models.CharField(max_length=500) #file ref or something?
     
     class Meta:
         db_table = u'Update'

@@ -82,7 +82,7 @@ Pretending to be logged in as <a href="{% url 'core.views.profile' lyfeuser.user
     -->
     <ul>
         {% for update in newsfeed %}
-            <li> Update to {{ update.goal_id }} | {{ update.timestamp }}<br>
+            <li> {{ update.user_id }} posted an update to goal <b>{{ update.goal_id }}</b> | {{ update.timestamp }}<br>
             {{ update.content }}
             <br>
         {% endfor %}
