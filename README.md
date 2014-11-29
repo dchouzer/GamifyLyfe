@@ -21,3 +21,13 @@ https://github.com/settings/ssh
 (This will make a new gamify-lyfe folder)
 
 4) Running 'python manage.py runserver 0.0.0.0:8000' will run the django instance on localhost:8000
+
+How to fix your out of sync DB
+==============================
+1) Pull from git (to get the updated .gitignore file)
+
+2) Delete everything in your core/migrations folder except for the __init__.py file[s]
+
+3) Run "python manage.py makemigrations"
+
+4) Run "python manage.py syncdb"
