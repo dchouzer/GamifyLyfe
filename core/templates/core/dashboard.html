@@ -108,8 +108,9 @@ function toggleDiv(divId) {
                 <br>
                 Base Points: {{ goal.base_points }} | Friend Points: {{ goal.friend_points }} | Time Points: {{ goal.time_points }}<br>
                 Start Date: {{ goal.start_date }} | Completion Date: {{ goal.completion_date }}
-                </li>
+               <br>
             {% endfor %}
+         </li>
             <br>
             <a href="javascript:toggleDiv('add_actionitem_{{goalgroup.pk}}{{goal.pk}}');">+ Add new goal</a>
             <div style="display: none;" id = "add_actionitem_{{goalgroup.pk}}{{goal.pk}}">

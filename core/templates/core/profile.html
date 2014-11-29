@@ -83,13 +83,42 @@ function toggleDiv(divId) {
     {% for goalgroup, groupgoals in inactivegoalitems %}
     <li>{{ goalgroup }}
     <ul>
-        {% for goal in groupgoals %}
+        {% for goal, goalupdates in groupgoals %}
             <span class="{{goal.get_status_display}}"><b>{{ goal }}</b></span> ({{goal.get_status_display}})
             
             <br>
             Base Points: {{ goal.base_points }} | Friend Points: {{ goal.friend_points }} | Time Points: {{ goal.time_points }}<br>
             Start Date: {{ goal.start_date }} | Completion Date: {{ goal.completion_date }}
-            </li>
+            <br>
+             {% if goalupdates|length > 0 %}
+             <a href="javascript:toggleDiv('view_updates_{{goal.pk}}');">+ Show Progress Updates ({{goalupdates|length}})</a>
+                <br>
+                <div style="display: none;" id = "view_updates_{{goal.pk}}">
+                    <ul>{% for goalupdate, comments in goalupdates %}
+                        {{ goalupdate.timestamp }} {{ lyfeuser.username }} {% if goalupdate.completion %}completed goal: {% else %}posted update: {% endif %}{{ goalupdate.content }}<br>
+                          
+                        <a href="javascript:toggleDiv('add_goalcomment_{{goalupdate.pk}}');">+ Show Comments ({{comments|length}})</a>
+                        <br>
+                        <div style="display: none;" id = "add_goalcomment_{{goalupdate.pk}}">
+                            <ul>
+                            {% for comment in comments %}
+                                {{ comment.timestamp }} | <b>{{ comment.creator_uid }}</b> commented: {{ comment.content }}<br>
+                            {% endfor %}
+                            
+                            {% if user.is_authenticated %}    
+                            <form method="post" action="{% url 'core.views.add_comment' goalupdate.pk %}">
+                            {% csrf_token %}
+                            <p>
+                                <img src = "{{ lyfeuser| user_avatar_url}}" height = "50px"> {{ commentForm.content }}
+                            </p>
+                            </form>
+                            {% endif %}
+                            </ul>
+                        </div>
+                    {% endfor %}
+                    </ul>
+                </div>
+            {% endif %}
         {% endfor %}
     </ul>
     </li>
