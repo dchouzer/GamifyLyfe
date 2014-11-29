@@ -10,26 +10,7 @@ from django.forms.models import ModelForm, inlineformset_factory, modelform_fact
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
 from django import forms
-
-class MyRegistrationForm(UserCreationForm):
-    #avatar = forms.FileField(required = False)
-
-    class Meta:
-        model = User
-        fields = ('username', 'email', 'password1', 'password2')        
-
-    def save(self,commit = True):   
-        newuser = super(MyRegistrationForm, self).save(commit = False)
-        #newuser.avatar = self.cleaned_data['avatar']
-        if commit:
-            newuser.save()
-            #newlyfeuser = LyfeUser(avatar = self.cleaned_data['avatar'], username = newuser.username, user_id = newuser.pk)
-            newlyfeuser = LyfeUser(username = newuser.username, user_id = newuser.pk)
-            newlyfeuser.save()
-        
-        return newuser
-
-#FAKE_USER = get_object_or_404(LyfeUser, pk='Solix') # replace all instances with request.user when authentication works
+from datetime import date
 
 def home(request):
     if request.user.is_authenticated():
@@ -91,10 +72,13 @@ def dashboard(request):
     
     # goal form
     goal_groupform = modelform_factory(GoalGroup, fields=('name',), labels = {'name' : 'Category name'})
-    goal_formset = inlineformset_factory(GoalGroup, Goal, extra=1, fields = ('name', 'difficulty'), can_delete = False, labels = {'name' : 'Initial Goal name'})
-        
+    goal_formset = inlineformset_factory(GoalGroup, Goal, extra=1, fields = ('name', 'difficulty'), can_delete = False, labels = {'name' : 'Initial goal'})
+      
+    #actionitem_form
+    actionitem_form = modelform_factory(Goal, fields=('name', 'difficulty'), labels = {'name' : 'description'})
+    
     return render_to_response('core/dashboard.html',
-        { 'lyfeuser' : lyfeuser, 'goals' : goals, 'friend_requests' : friend_requests, 'friends' : friends, 'updateform' : updateform, 'newsfeed' : newsfeed, 'goal_groupform' : goal_groupform, 'goal_formset' : goal_formset },
+        { 'lyfeuser' : lyfeuser, 'goals' : goals, 'friend_requests' : friend_requests, 'friends' : friends, 'updateform' : updateform, 'newsfeed' : newsfeed, 'goal_groupform' : goal_groupform, 'goal_formset' : goal_formset, 'actionitem_form' : actionitem_form},
         context_instance=RequestContext(request))
 
 def profile(request, username):
@@ -182,8 +166,8 @@ def avatar(request):
 	)
 
 def post_update(request, goal):
-    #goal = Goal.objects.get(pk = goal)
-         
+    # if use has posted an update for this goal within an hour give form error
+    # add time point
     updateForm = UpdateForm(request.POST)
     update = updateForm.save(commit=False)
     update.goal_id_id = goal
@@ -205,8 +189,8 @@ def add_goal(request):
     if goalFormSet.is_valid():
         for goalForm in goalFormSet:
             goal = goalForm.save(commit=False)
-            goal.goal_id_id = goalGroup.id
-            goal.start_date = goal.est_date
+            goal.goal_id = goalGroup
+            goal.start_date = date.today()
             if goal.difficulty == 0:
                 goal.base_points = 10
             elif goal.difficulty == 1:
@@ -218,22 +202,58 @@ def add_goal(request):
     
     return HttpResponseRedirect(reverse('core.views.dashboard'))
 
+def delete_goal(request, goal):
+    deletegoal = Goal.objects.get(pk = goal)
+    
+    if deletegoal.status == -1:
+        # update order_num indices as appropriate
+        index = deletegoal.order_num + 1
+        processing = True
+        
+        while processing:
+            try:
+                updategoal = Goal.objects.get(goal_id = deletegoal.goal_id, order_num = index)
+                updategoal.order_num -= 1
+                index += 1
+                updategoal.save()
+            except Goal.DoesNotExist:
+                processing = False
+        
+        deletegoal.delete()
+    
+    return HttpResponseRedirect(reverse('core.views.dashboard'))
 
-""" Forms for database """
-#TODO: move to separate forms.py file?
-class UpdateForm(ModelForm):
-    class Meta:
-        model = Update
-        fields = ['content']
-#  modelform_factory(Update, fields=("content"))
-class GoalGroupForm(ModelForm):
-    class Meta:
-        model = GoalGroup
-        fields = ['name']
-       
+def add_actionitem(request, goalgroup):
+    GoalForm = modelform_factory(Goal, fields=('name', 'difficulty'), labels = {'name' : 'description'})
+    
+    newGoal = GoalForm(request.POST, request.FILES)
+    if newGoal.is_valid():
+        goal = newGoal.save(commit=False)
+        goal.goal_id_id = goalgroup
+        goal.status = -1 #future
+        if goal.difficulty == 0:
+            goal.base_points = 10
+        elif goal.difficulty == 1:
+            goal.base_points = 20
+        elif goal.difficulty == 2:
+            goal.base_points = 40
         
-class CommentForm(ModelForm):
-    class Meta:
-        model = Comment
-        fields = ['content']
+        goal.order_num = len(list(Goal.objects.filter(goal_id_id=goalgroup)))
+    
+        goal.save()
         
+    return HttpResponseRedirect(reverse('core.views.dashboard'))
+
+class MyRegistrationForm(UserCreationForm):
+    class Meta:
+        model = User
+        fields = ('username', 'email', 'password1', 'password2')        
+
+    def save(self,commit = True):   
+        newuser = super(MyRegistrationForm, self).save(commit = False)
+        if commit:
+            newuser.save()
+            newlyfeuser = LyfeUser(username = newuser.username, user_id = newuser.pk)
+            newlyfeuser.save()
+        
+        return newuser

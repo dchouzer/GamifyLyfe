@@ -1,5 +1,5 @@
 {% extends "core/base.html" %}
-{% block heading %}All Users{% endblock %}
+{% block heading %}Dashboard: <a href="{% url 'core.views.profile' lyfeuser.username %}">{{ lyfeuser.username }}</a> {% endblock %}
 {% block script %}
 <script type="text/javascript">
 function toggleDiv(divId) {
@@ -12,7 +12,6 @@ function toggleDiv(divId) {
 {% load extras %}
     <h3>NAVIGATION</h3>
     <ul>
-    <li><a href="{% url 'core.views.profile' lyfeuser.username %}">Profile</a></li>
     <li><a href = "{% url 'core.views.avatar' %}">Change avatar</a></li>
     </ul>
     {% if friend_requests %}
@@ -52,17 +51,29 @@ function toggleDiv(divId) {
                         <input type="submit" value="Submit Update"/>
                         </form>
                     </div>
+                {% elif goal.status == -1 %}
+                 | <a href = "{% url 'core.views.delete_goal' goal.pk %}">Delete Goal</a>
                 {% endif %}
                 
                 <br>
                 Base Points: {{ goal.base_points }} | Friend Points: {{ goal.friend_points }} | Time Points: {{ goal.time_points }}<br>
                 Start Date: {{ goal.start_date }} | Completion Date: {{ goal.completion_date }}
-                <p>+Add new action item (TODO: link with goalgroup id) </p>
+                </li>
             {% endfor %}
+            <a href="javascript:toggleDiv('add_actionitem_{{goal.pk}}');">+ Add new goal</a>
+            <div style="display: none;" id = "add_actionitem_{{goal.pk}}">
+                <form method="post" action="{% url 'core.views.add_actionitem' goalgroup.pk %}">
+                {% csrf_token %}
+                <p>
+                    {{ actionitem_form }}
+                </p>
+                <input type="submit" value="Add Goal"/>
+                </form>
+            </div>
         </ul>
         </li>
-    {% endfor %}
-    <a href="javascript:toggleDiv('add_goal');">+ Add Goal Category</a>
+        {% endfor %}
+        <a href="javascript:toggleDiv('add_goal');">+ Add Goal Category</a>
         <div style="display: none;" id = "add_goal">
             <form method="post" action="{% url 'core.views.add_goal' %}">
             {% csrf_token %}
@@ -72,7 +83,7 @@ function toggleDiv(divId) {
                    {{ goal_formset }}
                 </ul>
             </p>
-            <input type="submit" value="Submit Update"/>
+            <input type="submit" value="Add Goal Category"/>
             </form>
         </div>
     </ul>

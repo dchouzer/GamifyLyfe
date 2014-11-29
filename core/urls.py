@@ -15,5 +15,7 @@ if settings.DEBUG:
         url(r'^addfriend/(?P<username>[^/]+)$', 'addfriend'),
         url(r'^unfriend/(?P<username>[^/]+)$', 'unfriend'),
         url(r'^post_update/(?P<goal>[^/]+)$', 'post_update'),
+        url(r'^add_actionitem/(?P<goalgroup>[^/]+)$', 'add_actionitem'),
         url(r'^add_goal$', 'add_goal'),
+        url(r'^delete_goal/(?P<goal>[^/]+)$', 'delete_goal'),
 	)
