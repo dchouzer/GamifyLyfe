@@ -2,11 +2,11 @@ from django.http import HttpResponseRedirect, HttpResponse
 from django.core.urlresolvers import reverse, reverse_lazy
 from django.template import RequestContext
 from django.shortcuts import render_to_response, get_object_or_404, get_list_or_404
-from core.models import LyfeUser, GoalGroup, Goal, Group, Membership, ShareSetting, Reward, RewardTransaction, Friend, Update, Comment, Document
+from core.models import LyfeUser, GoalGroup, Goal, Group, Membership, ShareSetting, Reward, RewardTransaction, Friend, Update, Comment
 from core.forms import DocumentForm
 from django.contrib.auth import logout as auth_logout
 from django.db import IntegrityError
-from django.forms.models import ModelForm, inlineformset_factory
+from django.forms.models import ModelForm, inlineformset_factory, modelform_factory
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
 from django import forms
@@ -87,10 +87,14 @@ def dashboard(request):
     newsfeed = Update.objects.filter(user_id_id__in=friendIDs).order_by('timestamp').reverse()
     
     # update form
-    updateform = UpdateForm()
+    updateform = modelform_factory(Update, fields = ('content',), widgets = {'content': forms.Textarea}, labels = {'content' : ''})
     
+    # goal form
+    goal_groupform = modelform_factory(GoalGroup, fields=('name',), labels = {'name' : 'Category name'})
+    goal_formset = inlineformset_factory(GoalGroup, Goal, extra=1, fields = ('name', 'difficulty'), can_delete = False, labels = {'name' : 'Initial Goal name'})
+        
     return render_to_response('core/dashboard.html',
-        { 'lyfeuser' : lyfeuser, 'goals' : goals, 'friend_requests' : friend_requests, 'friends' : friends, 'updateform' : updateform, 'newsfeed' : newsfeed },
+        { 'lyfeuser' : lyfeuser, 'goals' : goals, 'friend_requests' : friend_requests, 'friends' : friends, 'updateform' : updateform, 'newsfeed' : newsfeed, 'goal_groupform' : goal_groupform, 'goal_formset' : goal_formset },
         context_instance=RequestContext(request))
 
 def profile(request, username):
@@ -105,7 +109,7 @@ def profile(request, username):
             # user has friend request or accepted other user
         except Friend.DoesNotExist:
             addfriend = True
-            print "friendship is null"
+            # not friends
     else:
         currentuser = True
         print "fill"
@@ -142,7 +146,6 @@ def addfriend(request, username):
     
 def unfriend(request, username):
     current_user = get_object_or_404(LyfeUser, pk=request.user.username)
-    
     lyfeuser = get_object_or_404(LyfeUser, pk=username)
     
     try:
@@ -161,44 +164,76 @@ def unfriend(request, username):
     return HttpResponseRedirect(reverse('core.views.profile', kwargs={'username' : username}))
 
 def avatar(request):
-	if request.method == 'POST':
+    current_user = get_object_or_404(LyfeUser, pk=request.user.username)
+    
+    if request.method == 'POST':
 		form = DocumentForm(request.POST, request.FILES)
 		if form.is_valid():
-			newDoc = Document(docfile = request.FILES['docfile'])
-			newDoc.save()
+			current_user.avatar = request.FILES['docfile']
+			current_user.save()
 			return HttpResponseRedirect(reverse('core.views.avatar'))
-	else:
+    else:
 		form = DocumentForm()
 
-	documents = Document.objects.all()
-
-	return render_to_response(
+    return render_to_response(
 		'core/list.html',
-		{'documents': documents, 'form':form},
+		{'form': form, 'current_user': current_user},
 		context_instance=RequestContext(request)
 	)
 
-def post_update(request, goalgroup):
+def post_update(request, goal):
+    #goal = Goal.objects.get(pk = goal)
+         
     updateForm = UpdateForm(request.POST)
-    # Remember to set drinker.name before updating the database, because
-    # PartialDrinkerForm doesn't contain this information:
     update = updateForm.save(commit=False)
-    update.goal_id_id = goalgroup
+    update.goal_id_id = goal
     update.user_id_id = request.user.username
     update.save()
     
     return HttpResponseRedirect(reverse('core.views.dashboard'))
 
+def add_goal(request):
+    GoalGroupForm = modelform_factory(GoalGroup, fields=('name',))
+    GoalFormSet = inlineformset_factory(GoalGroup, Goal, extra=1, fields = ('name', 'difficulty'), can_delete = False)
+    
+    goalGroupForm = GoalGroupForm(request.POST)
+    goalGroup = goalGroupForm.save(commit=False)
+    goalGroup.ownerid_id = request.user.username
+    goalGroup.save()
+    
+    goalFormSet = GoalFormSet(request.POST, request.FILES)
+    if goalFormSet.is_valid():
+        for goalForm in goalFormSet:
+            goal = goalForm.save(commit=False)
+            goal.goal_id_id = goalGroup.id
+            goal.start_date = goal.est_date
+            if goal.difficulty == 0:
+                goal.base_points = 10
+            elif goal.difficulty == 1:
+                goal.base_points = 20
+            elif goal.difficulty == 2:
+                goal.base_points = 40
+            
+            goal.save()
+    
+    return HttpResponseRedirect(reverse('core.views.dashboard'))
+
+
+""" Forms for database """
+#TODO: move to separate forms.py file?
 class UpdateForm(ModelForm):
     class Meta:
         model = Update
         fields = ['content']
+#  modelform_factory(Update, fields=("content"))
+class GoalGroupForm(ModelForm):
+    class Meta:
+        model = GoalGroup
+        fields = ['name']
+       
         
-    #user_id = models.ForeignKey(LyfeUser)
-    #goal_id = models.ForeignKey(GoalGroup)
-    #timestamp = models.DateTimeField(auto_now_add = True)
-    #content = models.CharField(max_length=50) #file ref or something?
-    
 class CommentForm(ModelForm):
     class Meta:
         model = Comment
+        fields = ['content']
+        

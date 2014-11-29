@@ -63,7 +63,7 @@ class GoalGroup(models.Model):
 
 class Goal(models.Model):
     goal_id = models.ForeignKey(GoalGroup)
-    order_num = models.IntegerField() # 0 to multiple
+    order_num = models.IntegerField(default = '0') # 0 to multiple
     base_points = models.IntegerField()
     friend_points = models.IntegerField(default = '0')
     time_points = models.IntegerField(default = '0')
@@ -77,7 +77,7 @@ class Goal(models.Model):
         (FUTURE, 'future'),
         (COMPLETED, 'completed')
     )
-    status = models.IntegerField(choices=STATUS_CHOICES, default=FUTURE)
+    status = models.IntegerField(choices=STATUS_CHOICES, default=ACTIVE)
     
     EASY = 0
     MODERATE = 1
@@ -167,7 +167,7 @@ class Friend(models.Model):
 class Update(models.Model):
     # default update ID
     user_id = models.ForeignKey(LyfeUser) # helpful for filtering updates
-    goal_id = models.ForeignKey(GoalGroup)
+    goal_id = models.ForeignKey(Goal)
     timestamp = models.DateTimeField(auto_now_add = True)
     content = models.CharField(max_length=500) #file ref or something?
     
@@ -187,7 +187,3 @@ class Comment(models.Model):
         db_table = u'Comment'
     def __unicode__(self):
         return self.content
-
-#form model to store to media/files/CURRENTMONTH/CURRENTDATE
-class Document(models.Model):
-    docfile = models.FileField(upload_to='files/%Y/%m/%d')

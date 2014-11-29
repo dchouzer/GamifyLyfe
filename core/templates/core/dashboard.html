@@ -10,8 +10,11 @@ function toggleDiv(divId) {
 
 {% block content %}
 {% load extras %}
-<p>
-Profile: <a href="{% url 'core.views.profile' lyfeuser.username %}">{{ lyfeuser.username}}</a></li>
+    <h3>NAVIGATION</h3>
+    <ul>
+    <li><a href="{% url 'core.views.profile' lyfeuser.username %}">Profile</a></li>
+    <li><a href = "{% url 'core.views.avatar' %}">Change avatar</a></li>
+    </ul>
     {% if friend_requests %}
         <h3>FRIEND REQUESTS</h3>
         
@@ -39,9 +42,9 @@ Profile: <a href="{% url 'core.views.profile' lyfeuser.username %}">{{ lyfeuser.
                 <li><span class="{{goal.get_status_display}}"><b>{{ goal }}</b></span> ({{goal.get_status_display}})
                 
                 {% if goal.status == 0 %}
-                    <a href="javascript:toggleDiv('update_{{goalgroup.pk}}');">+ Submit Progress Update</a>
-                    <div style="display: none;" id = "update_{{goalgroup.pk}}">
-                        <form method="post" action="{% url 'core.views.post_update' goalgroup.pk %}">
+                    <a href="javascript:toggleDiv('update_{{goal.pk}}');">+ Submit Progress Update</a>
+                    <div style="display: none;" id = "update_{{goal.pk}}">
+                        <form method="post" action="{% url 'core.views.post_update' goal.pk %}">
                         {% csrf_token %}
                         <p>
                         {{ updateform }}
@@ -57,8 +60,21 @@ Profile: <a href="{% url 'core.views.profile' lyfeuser.username %}">{{ lyfeuser.
                 <p>+Add new action item (TODO: link with goalgroup id) </p>
             {% endfor %}
         </ul>
-        <p>+Add new goal (TODO: link to goal add popup)</p>
+        </li>
     {% endfor %}
+    <a href="javascript:toggleDiv('add_goal');">+ Add Goal Category</a>
+        <div style="display: none;" id = "add_goal">
+            <form method="post" action="{% url 'core.views.add_goal' %}">
+            {% csrf_token %}
+            <p>
+                {{ goal_groupform }}
+                <ul>
+                   {{ goal_formset }}
+                </ul>
+            </p>
+            <input type="submit" value="Submit Update"/>
+            </form>
+        </div>
     </ul>
     
     <h3>NEWSFEED</h3>
@@ -71,22 +87,11 @@ Profile: <a href="{% url 'core.views.profile' lyfeuser.username %}">{{ lyfeuser.
         No friends :(
     {% endif %}
     <br><br>
-    <!-- Kind of pointless
-    {% if following %}
-    <h5>FOLLOWING</h5>
-        {% for follow in following %}
-            <a href = "{% url 'core.views.profile' follow.recipient_id %}"><img src = "{{follow.recipient_id|user_avatar_url}}"></a>
-        {% endfor %}
-    {% endif %}
-    -->
     <ul>
         {% for update in newsfeed %}
-            <li> {{ update.user_id }} posted an update to goal <b>{{ update.goal_id }}</b> | {{ update.timestamp }}<br>
+            <li> {{ update.user_id }} posted an update to goal <b>{{ update.goal_id }}</b> in category <i>{{ update.goal_id.goal_id }}</i> | {{ update.timestamp }}<br>
             {{ update.content }}
             <br>
         {% endfor %}
     </ul>
-    <br>
-    
-</p>
 {% endblock %}

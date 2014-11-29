@@ -10,9 +10,10 @@ if settings.DEBUG:
 	    url(r'^login$', 'login'),
         url(r'^register$', 'register'),
 	    url(r'^logout$', 'logout'),
-	    url(r'^list$', 'avatar'),
+	    url(r'^avatar$', 'avatar'),
         url(r'^profile/(?P<username>[^/]+)$', 'profile'),
         url(r'^addfriend/(?P<username>[^/]+)$', 'addfriend'),
         url(r'^unfriend/(?P<username>[^/]+)$', 'unfriend'),
-        url(r'^post_update/(?P<goalgroup>[^/]+)$', 'post_update'),
+        url(r'^post_update/(?P<goal>[^/]+)$', 'post_update'),
+        url(r'^add_goal$', 'add_goal'),
 	)
