@@ -224,7 +224,8 @@ def post_update(request, goal):
             
             updatedGoal.time_points += 1
             updatedGoal.save()
-        update.goal_id_id = goal
+        
+        update.goal_id = updatedGoal
         update.user_id_id = request.user.username
         update.save()
             
