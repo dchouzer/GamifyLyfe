@@ -20,4 +20,6 @@ if settings.DEBUG:
         url(r'^delete_goal/(?P<goal>[^/]+)$', 'delete_goal'),
         url(r'^delete_goal/(?P<goal>[^/]+)/(?P<neworder_num>[^/]+)$', 'flip_goals'),
         url(r'^add_friendpoint/(?P<goal>[^/]+)$', 'add_friendpoint'),
+        url(r'^add_comment/(?P<update>[^/]+)$', 'add_comment'),
+        url(r'^delete_goalgroup/(?P<goalgroup>[^/]+)$', 'delete_goalgroup'),
 	)

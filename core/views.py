@@ -41,14 +41,26 @@ def logout(request):
     auth_logout(request)
     return HttpResponseRedirect(reverse('core.views.login'))
 
-def dashboard(request):
-    lyfeuser = get_object_or_404(LyfeUser, pk=request.user.username)
-    goalgroups = list(GoalGroup.objects.filter(ownerid=lyfeuser.pk))
-    goals = {}
+def make_goalitems(goalgroups):
+    activegoalitems = []
+    inactivegoalitems = []
     
-    # goals
     for goalgroup in goalgroups:
-        goals[goalgroup] = Goal.objects.filter(goal_id=goalgroup.pk).order_by('order_num')
+        goals = Goal.objects.filter(goal_id = goalgroup.pk).order_by('order_num')
+        goalitem = (goalgroup, goals)
+
+        try:
+            Goal.objects.get(goal_id = goalgroup.pk, status = 0)
+            activegoalitems.append(goalitem)
+        except Goal.DoesNotExist:
+            inactivegoalitems.append(goalitem)
+    
+    return (activegoalitems, inactivegoalitems)
+def dashboard(request):
+    lyfeuser = get_object_or_404(LyfeUser, pk = request.user.username)
+    goalitems = make_goalitems(list(GoalGroup.objects.filter(ownerid = lyfeuser.pk)))
+    activegoalitems = goalitems[0]
+    inactivegoalitems = goalitems[1]
     
     # friend requests
     friend_requests = list(Friend.objects.filter(recipient_id = lyfeuser, is_approved = False))
@@ -62,7 +74,8 @@ def dashboard(request):
     for friend in friends:
         friendIDs.append(friend.recipient_id)
         
-    newsfeed = Update.objects.filter(user_id_id__in=friendIDs).order_by('timestamp').reverse()
+    updates = Update.objects.filter(user_id_id__in=friendIDs).order_by('timestamp').reverse()[:15] 
+    newsfeed = make_newsfeed(updates)
     
     # update form
     updateform = modelform_factory(Update, fields = ('content', 'completion'), widgets = {'content': forms.Textarea}, labels = {'content' : ''})
@@ -74,17 +87,24 @@ def dashboard(request):
     # goal form
     actionitem_form = modelform_factory(Goal, fields=('name', 'difficulty'), labels = {'name' : 'description'})
     
+    # comment form
+    commentForm = modelform_factory(Comment, fields=('content',), labels = {'content' : 'comment'}, widgets = {'content': forms.TextInput(attrs={'placeholder' : 'Add comment'})})
+    
     return render_to_response('core/dashboard.html',
-        { 'lyfeuser' : lyfeuser, 'goals' : goals, 'friend_requests' : friend_requests, 'friends' : friends, 'updateform' : updateform, 'newsfeed' : newsfeed, 'goal_groupform' : goal_groupform, 'goal_formset' : goal_formset, 'actionitem_form' : actionitem_form},
+        { 'lyfeuser' : lyfeuser, 'activegoalitems' : activegoalitems, 'inactivegoalitems' : inactivegoalitems, 'friend_requests' : friend_requests, 'friends' : friends, 'updateform' : updateform, 'newsfeed' : newsfeed, 'goal_groupform' : goal_groupform, 'goal_formset' : goal_formset, 'actionitem_form' : actionitem_form, 'commentForm' : commentForm},
         context_instance=RequestContext(request))
 
 def profile(request, username):
-    current_user = get_object_or_404(LyfeUser, pk=request.user.username)
+    try:
+        current_user = LyfeUser.objects.get(pk=request.user.username)
+    except LyfeUser.DoesNotExist:
+        current_user = None
+        
     lyfeuser = get_object_or_404(LyfeUser, pk=username)
     addfriend = False
     friendpoints = False
                     
-    if current_user.pk != lyfeuser.pk:
+    if current_user != None and current_user.pk != lyfeuser.pk:
         try:
             friendship = Friend.objects.get(requester_id=current_user, recipient_id = lyfeuser)
             # user has friend request or accepted other user
@@ -99,22 +119,35 @@ def profile(request, username):
         else:
             friendpoints = True
     
-    goalgroups = list(GoalGroup.objects.filter(ownerid=lyfeuser.pk))
-    goals = {}
-    
-    for goalgroup in goalgroups:
-        goals[goalgroup] = Goal.objects.filter(goal_id=goalgroup.pk).order_by('order_num')
+    goalitems = make_goalitems(list(GoalGroup.objects.filter(ownerid = lyfeuser.pk)))
+    activegoalitems = goalitems[0]
+    inactivegoalitems = goalitems[1]
     
     # friends
     friends = list(Friend.objects.filter(requester_id = lyfeuser, is_approved = True))
     
     # newsfeed
-    newsfeed = Update.objects.filter(user_id=lyfeuser).order_by('timestamp').reverse()
+    updates = Update.objects.filter(user_id=lyfeuser).order_by('timestamp').reverse()[:15]
+    newsfeed = make_newsfeed(updates)
+    
+    # comment form
+    commentForm = modelform_factory(Comment, fields=('content',), labels = {'content' : 'comment'}, widgets = {'content': forms.TextInput(attrs={'placeholder' : 'Add comment'})})
     
     return render_to_response('core/profile.html',
-    { 'lyfeuser' : lyfeuser, 'goals' : goals, 'addfriend' : addfriend, 'friends' : friends, 'newsfeed' : newsfeed, 'friendpoints' : friendpoints },
+    { 'lyfeuser' : lyfeuser, 'activegoalitems' : activegoalitems, 'inactivegoalitems': inactivegoalitems, 'addfriend' : addfriend, 'friends' : friends, 'newsfeed' : newsfeed, 'friendpoints' : friendpoints, 'commentForm' : commentForm },
     context_instance=RequestContext(request))
 
+def make_newsfeed(updates):
+    newsfeed = []
+    
+    # attach comments
+    for newsitem in updates:
+        comments = Comment.objects.filter(update_id=newsitem).order_by('timestamp')
+        tuple = (newsitem, comments)
+        newsfeed.append(tuple)
+
+    return newsfeed
+    
 def addfriend(request, username):
     current_user = get_object_or_404(LyfeUser, pk=request.user.username)
     lyfeuser = get_object_or_404(LyfeUser, pk=username)
@@ -134,7 +167,7 @@ def addfriend(request, username):
     except IntegrityError:
         pass # already requested
         
-    return HttpResponseRedirect(reverse('core.views.profile', kwargs={'username' : username}))
+    return HttpResponseRedirect(request.META.get('HTTP_REFERER', '/'))
     
 def unfriend(request, username):
     current_user = get_object_or_404(LyfeUser, pk=request.user.username)
@@ -278,21 +311,28 @@ def delete_goal(request, goal):
     
     return HttpResponseRedirect(reverse('core.views.dashboard'))
 
+def delete_goalgroup(request, goalgroup):
+    deletegroup = GoalGroup.objects.get(pk = goalgroup)
+    deletegroup.delete()
+    
+    return HttpResponseRedirect(reverse('core.views.dashboard'))
+
 def flip_goals(request, goal, neworder_num):
     try:
         goalone = Goal.objects.get(pk = goal)
         goaltwo = Goal.objects.get(goal_id = goalone.goal_id, order_num = neworder_num)
         
         oldorder_num = goalone.order_num
+        newstatus = goaltwo.status
         
-        if goaltwo.status == 0: # active and future flipping
-            goalone.status = 0
-            goaltwo.status = -1
-            
+        goaltwo.status = goalone.status
         goaltwo.order_num = -1
         goaltwo.save()
+        goalone.status = newstatus
         goalone.order_num = neworder_num
         goalone.save()
+        
+        # in case of key checking
         goaltwo.order_num = oldorder_num
         goaltwo.save()
         
@@ -348,6 +388,19 @@ def add_friendpoint(request, goal):
         goal.save()
         
     return HttpResponseRedirect(reverse('core.views.profile', kwargs={'username' : lyfeuser.username}))
+
+def add_comment(request, update):
+    #current_user = get_object_or_404(LyfeUser, pk=request.user.username)
+    CommentForm = modelform_factory(Comment, fields=('content',), labels = {'content' : 'comment'})
+    newComment = CommentForm(request.POST, request.FILES)
+    
+    if newComment.is_valid():
+        comment = newComment.save(commit=False)
+        comment.creator_uid_id = request.user.username
+        comment.update_id_id = update
+        comment.save()
+        
+    return HttpResponseRedirect(request.META.get('HTTP_REFERER', '/'))
 
 class MyRegistrationForm(UserCreationForm):
     class Meta:

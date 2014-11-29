@@ -93,7 +93,7 @@ class Goal(models.Model):
     completion_date = models.DateField(null = True, blank=True)
 
     class Meta:
-        unique_together = ('id', 'order_num')
+        unique_together = ('goal_id', 'order_num')
         db_table = u'Goal'
     def __unicode__(self):
         return self.name
@@ -181,7 +181,7 @@ class Comment(models.Model):
     creator_uid = models.ForeignKey(LyfeUser)
     update_id = models.ForeignKey(Update)
     timestamp = models.DateTimeField(auto_now_add = True)
-    content = models.CharField(max_length=50) #file ref or something?
+    content = models.CharField(max_length=500) #file ref or something?
     
     class Meta:
         unique_together = ('creator_uid', 'update_id', 'timestamp')
