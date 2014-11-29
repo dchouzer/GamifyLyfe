@@ -41,21 +41,6 @@ def logout(request):
     auth_logout(request)
     return HttpResponseRedirect(reverse('core.views.login'))
 
-def make_goalitems(goalgroups):
-    activegoalitems = []
-    inactivegoalitems = []
-    
-    for goalgroup in goalgroups:
-        goals = Goal.objects.filter(goal_id = goalgroup.pk).order_by('order_num')
-        goalitem = (goalgroup, goals)
-
-        try:
-            Goal.objects.get(goal_id = goalgroup.pk, status = 0)
-            activegoalitems.append(goalitem)
-        except Goal.DoesNotExist:
-            inactivegoalitems.append(goalitem)
-    
-    return (activegoalitems, inactivegoalitems)
 def dashboard(request):
     lyfeuser = get_object_or_404(LyfeUser, pk = request.user.username)
     goalitems = make_goalitems(list(GoalGroup.objects.filter(ownerid = lyfeuser.pk)))
@@ -137,6 +122,28 @@ def profile(request, username):
     { 'lyfeuser' : lyfeuser, 'activegoalitems' : activegoalitems, 'inactivegoalitems': inactivegoalitems, 'addfriend' : addfriend, 'friends' : friends, 'newsfeed' : newsfeed, 'friendpoints' : friendpoints, 'commentForm' : commentForm },
     context_instance=RequestContext(request))
 
+    
+def make_goalitems(goalgroups):
+    activegoalitems = []
+    inactivegoalitems = []
+    
+    for goalgroup in goalgroups:
+        goals = Goal.objects.filter(goal_id = goalgroup.pk).order_by('order_num')
+        goalobject = []
+        for goal in goals:
+            tuple = (goal, make_newsfeed(Update.objects.filter(goal_id = goal)))
+            goalobject.append(tuple)
+            
+        goalitem = (goalgroup, goalobject)
+
+        try:
+            Goal.objects.get(goal_id = goalgroup.pk, status = 0)
+            activegoalitems.append(goalitem)
+        except Goal.DoesNotExist:
+            inactivegoalitems.append(goalitem)
+    
+    return (activegoalitems, inactivegoalitems)
+    
 def make_newsfeed(updates):
     newsfeed = []
     
@@ -325,6 +332,12 @@ def flip_goals(request, goal, neworder_num):
         oldorder_num = goalone.order_num
         newstatus = goaltwo.status
         
+        if goalone.status == 0 and goaltwo.start_date == None:
+            goaltwo.start_date = date.today()
+            
+        elif goaltwo.status == 0 and goalone.start_date == None:
+            goalone.start_date = date.today()
+            
         goaltwo.status = goalone.status
         goaltwo.order_num = -1
         goaltwo.save()
