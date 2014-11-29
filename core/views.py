@@ -48,16 +48,13 @@ def dashboard(request):
     
     # goals
     for goalgroup in goalgroups:
-        goals[goalgroup] = list(Goal.objects.filter(goal_id=goalgroup.pk).order_by('order_num'))
+        goals[goalgroup] = Goal.objects.filter(goal_id=goalgroup.pk).order_by('order_num')
     
     # friend requests
     friend_requests = list(Friend.objects.filter(recipient_id = lyfeuser, is_approved = False))
     
     # friends
     friends = list(Friend.objects.filter(requester_id = lyfeuser, is_approved = True))
-    
-    # following
-    #following = list(Friend.objects.filter(requester_id = lyfeuser, is_approved = False))
     
     # newsfeed
     friendIDs = []
@@ -68,7 +65,7 @@ def dashboard(request):
     newsfeed = Update.objects.filter(user_id_id__in=friendIDs).order_by('timestamp').reverse()
     
     # update form
-    updateform = modelform_factory(Update, fields = ('content',), widgets = {'content': forms.Textarea}, labels = {'content' : ''})
+    updateform = modelform_factory(Update, fields = ('content', 'completion'), widgets = {'content': forms.Textarea}, labels = {'content' : ''})
     
     # goal form
     goal_groupform = modelform_factory(GoalGroup, fields=('name',), labels = {'name' : 'Category name'})
@@ -95,13 +92,13 @@ def profile(request, username):
             addfriend = True
             # not friends
     else:
-        currentuser = True
+        currentuser = True # not needed?
         print "fill"
     goalgroups = list(GoalGroup.objects.filter(ownerid=lyfeuser.pk))
     goals = {}
     
     for goalgroup in goalgroups:
-        goals[goalgroup] = list(Goal.objects.filter(goal_id=goalgroup.pk).order_by('order_num'))
+        goals[goalgroup] = Goal.objects.filter(goal_id=goalgroup.pk).order_by('order_num')
     
     return render_to_response('core/profile.html',
     { 'lyfeuser' : lyfeuser, 'goals' : goals, 'addfriend' : addfriend, 'currentuser' : currentuser},
@@ -119,12 +116,12 @@ def addfriend(request, username):
             
             original_request.save()
         except Friend.DoesNotExist:
-            print "friend request is not accepted yet"
+            pass
             
         friend_request.save()
         
     except IntegrityError:
-        print "This action has already been completed."
+        pass # already requested
         
     return HttpResponseRedirect(reverse('core.views.profile', kwargs={'username' : username}))
     
@@ -143,7 +140,7 @@ def unfriend(request, username):
         friend_request.delete()
         
     except Friend.DoesNotExist:
-        print "This action has already been completed."
+        pass # not friends
         
     return HttpResponseRedirect(reverse('core.views.profile', kwargs={'username' : username}))
 
@@ -166,14 +163,42 @@ def avatar(request):
 	)
 
 def post_update(request, goal):
-    # if use has posted an update for this goal within an hour give form error
-    # add time point
-    updateForm = UpdateForm(request.POST)
-    update = updateForm.save(commit=False)
-    update.goal_id_id = goal
-    update.user_id_id = request.user.username
-    update.save()
+    UpdateForm = modelform_factory(Update, fields = ('content', 'completion'), widgets = {'content': forms.Textarea}, labels = {'content' : ''})
     
+    current_user = get_object_or_404(LyfeUser, pk=request.user.username)
+    
+    updateForm = UpdateForm(request.POST, request.FILES)
+    
+    if updateForm.is_valid():
+        update = updateForm.save(commit=False)
+        update.goal_id_id = goal
+        update.user_id_id = request.user.username
+        update.save()
+        
+        if update.completion:
+            completedGoal = Goal.objects.get(pk = goal)
+            completedGoal.status = 1 # complete
+            completedGoal.completion_date = date.today()
+            pointTotal = completedGoal.base_points + completedGoal.friend_points + completedGoal.time_points
+            current_user.cur_points += pointTotal
+            current_user.total_points += pointTotal
+            
+            completedGoal.save()
+            current_user.save()
+            
+            try:
+                nextGoal = Goal.objects.get(goal_id = completedGoal.goal_id, order_num = completedGoal.order_num+1)
+                nextGoal.status = 0 # active
+                nextGoal.save()
+            except Goal.DoesNotExist:
+                pass
+            
+        else:
+            # if use has posted an update for this goal within an hour give form error
+            # add time point
+            print "TODO"
+            
+        
     return HttpResponseRedirect(reverse('core.views.dashboard'))
 
 def add_goal(request):
@@ -221,6 +246,29 @@ def delete_goal(request, goal):
         
         deletegoal.delete()
     
+    return HttpResponseRedirect(reverse('core.views.dashboard'))
+
+def flip_goals(request, goal, neworder_num):
+    try:
+        goalone = Goal.objects.get(pk = goal)
+        goaltwo = Goal.objects.get(goal_id = goalone.goal_id, order_num = neworder_num)
+        
+        oldorder_num = goalone.order_num
+        
+        if goaltwo.status == 0: # active and future flipping
+            goalone.status = 0
+            goaltwo.status = -1
+            
+        goaltwo.order_num = -1
+        goaltwo.save()
+        goalone.order_num = neworder_num
+        goalone.save()
+        goaltwo.order_num = oldorder_num
+        goaltwo.save()
+        
+    except Goal.DoesNotExist:
+        processing = False
+        
     return HttpResponseRedirect(reverse('core.views.dashboard'))
 
 def add_actionitem(request, goalgroup):

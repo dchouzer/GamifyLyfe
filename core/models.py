@@ -170,6 +170,7 @@ class Update(models.Model):
     goal_id = models.ForeignKey(Goal)
     timestamp = models.DateTimeField(auto_now_add = True)
     content = models.CharField(max_length=500) #file ref or something?
+    completion = models.BooleanField(default = False)
     
     class Meta:
         db_table = u'Update'
