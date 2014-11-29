@@ -37,7 +37,7 @@ class LyfeUser(models.Model):
     total_points = models.IntegerField(default = '0')
     account_creation_date = models.DateField(auto_now_add = True)
     last_active_date = models.DateField(auto_now=True)
-    last_fp_given = models.DateField(null=True, blank=True)
+    last_fp_given = models.DateTimeField(null=True, blank=True)
     avatar = models.FileField(default='./default.jpg')
     user = models.ForeignKey(User, unique=True)
     

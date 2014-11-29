@@ -10,7 +10,7 @@ from django.forms.models import ModelForm, inlineformset_factory, modelform_fact
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
 from django import forms
-from datetime import date
+from datetime import date, datetime, tzinfo, timedelta
 
 def home(request):
     if request.user.is_authenticated():
@@ -67,11 +67,11 @@ def dashboard(request):
     # update form
     updateform = modelform_factory(Update, fields = ('content', 'completion'), widgets = {'content': forms.Textarea}, labels = {'content' : ''})
     
-    # goal form
+    # goal category form
     goal_groupform = modelform_factory(GoalGroup, fields=('name',), labels = {'name' : 'Category name'})
     goal_formset = inlineformset_factory(GoalGroup, Goal, extra=1, fields = ('name', 'difficulty'), can_delete = False, labels = {'name' : 'Initial goal'})
       
-    #actionitem_form
+    # goal form
     actionitem_form = modelform_factory(Goal, fields=('name', 'difficulty'), labels = {'name' : 'description'})
     
     return render_to_response('core/dashboard.html',
@@ -82,8 +82,8 @@ def profile(request, username):
     current_user = get_object_or_404(LyfeUser, pk=request.user.username)
     lyfeuser = get_object_or_404(LyfeUser, pk=username)
     addfriend = False
-    currentuser = False
-    
+    friendpoints = False
+                    
     if current_user.pk != lyfeuser.pk:
         try:
             friendship = Friend.objects.get(requester_id=current_user, recipient_id = lyfeuser)
@@ -91,17 +91,28 @@ def profile(request, username):
         except Friend.DoesNotExist:
             addfriend = True
             # not friends
-    else:
-        currentuser = True # not needed?
-        print "fill"
+           
+        # check if enough time has passed to give friendpoints again      
+        if current_user.last_fp_given:
+            difference = datetime.now(UTC()) - current_user.last_fp_given
+            friendpoints = difference.total_seconds() > 3600
+        else:
+            friendpoints = True
+    
     goalgroups = list(GoalGroup.objects.filter(ownerid=lyfeuser.pk))
     goals = {}
     
     for goalgroup in goalgroups:
         goals[goalgroup] = Goal.objects.filter(goal_id=goalgroup.pk).order_by('order_num')
     
+    # friends
+    friends = list(Friend.objects.filter(requester_id = lyfeuser, is_approved = True))
+    
+    # newsfeed
+    newsfeed = Update.objects.filter(user_id=lyfeuser).order_by('timestamp').reverse()
+    
     return render_to_response('core/profile.html',
-    { 'lyfeuser' : lyfeuser, 'goals' : goals, 'addfriend' : addfriend, 'currentuser' : currentuser},
+    { 'lyfeuser' : lyfeuser, 'goals' : goals, 'addfriend' : addfriend, 'friends' : friends, 'newsfeed' : newsfeed, 'friendpoints' : friendpoints },
     context_instance=RequestContext(request))
 
 def addfriend(request, username):
@@ -135,7 +146,7 @@ def unfriend(request, username):
             original_request = Friend.objects.get(requester_id=lyfeuser, recipient_id = current_user)
             original_request.delete()
         except Friend.DoesNotExist:
-            print "friend request is not accepted yet"
+            pass # friend request not accepted
             
         friend_request.delete()
         
@@ -162,6 +173,16 @@ def avatar(request):
 		context_instance=RequestContext(request)
 	)
 
+ZERO = timedelta(0)
+
+class UTC(tzinfo):
+  def utcoffset(self, dt):
+    return ZERO
+  def tzname(self, dt):
+    return "UTC"
+  def dst(self, dt):
+    return ZERO
+
 def post_update(request, goal):
     UpdateForm = modelform_factory(Update, fields = ('content', 'completion'), widgets = {'content': forms.Textarea}, labels = {'content' : ''})
     
@@ -171,34 +192,42 @@ def post_update(request, goal):
     
     if updateForm.is_valid():
         update = updateForm.save(commit=False)
-        update.goal_id_id = goal
-        update.user_id_id = request.user.username
-        update.save()
-        
+        updatedGoal = Goal.objects.get(pk = goal)
+            
         if update.completion:
-            completedGoal = Goal.objects.get(pk = goal)
-            completedGoal.status = 1 # complete
-            completedGoal.completion_date = date.today()
-            pointTotal = completedGoal.base_points + completedGoal.friend_points + completedGoal.time_points
+            updatedGoal.status = 1 # complete
+            updatedGoal.completion_date = date.today()
+            pointTotal = updatedGoal.base_points + updatedGoal.friend_points + updatedGoal.time_points
             current_user.cur_points += pointTotal
             current_user.total_points += pointTotal
             
-            completedGoal.save()
+            updatedGoal.save()
             current_user.save()
             
             try:
-                nextGoal = Goal.objects.get(goal_id = completedGoal.goal_id, order_num = completedGoal.order_num+1)
+                nextGoal = Goal.objects.get(goal_id = updatedGoal.goal_id, order_num = updatedGoal.order_num+1)
                 nextGoal.status = 0 # active
                 nextGoal.save()
             except Goal.DoesNotExist:
                 pass
             
         else:
-            # if use has posted an update for this goal within an hour give form error
-            # add time point
-            print "TODO"
+            try:
+                lastupdate = Update.objects.filter(goal_id = updatedGoal.pk).latest('timestamp')
+                difference = datetime.now(UTC()) - lastupdate.timestamp
+                if difference.total_seconds() < 3600:
+                    #TODO show this: raise forms.ValidationError("You can't post an update until an hour after your last update!")  
+                    
+                    return HttpResponseRedirect(reverse('core.views.dashboard'))
+            except Update.DoesNotExist:
+                pass
             
-        
+            updatedGoal.time_points += 1
+            updatedGoal.save()
+        update.goal_id_id = goal
+        update.user_id_id = request.user.username
+        update.save()
+            
     return HttpResponseRedirect(reverse('core.views.dashboard'))
 
 def add_goal(request):
@@ -231,7 +260,7 @@ def delete_goal(request, goal):
     deletegoal = Goal.objects.get(pk = goal)
     
     if deletegoal.status == -1:
-        # update order_num indices as appropriate
+        ''' update order_num indices as appropriate '''
         index = deletegoal.order_num + 1
         processing = True
         
@@ -278,7 +307,13 @@ def add_actionitem(request, goalgroup):
     if newGoal.is_valid():
         goal = newGoal.save(commit=False)
         goal.goal_id_id = goalgroup
-        goal.status = -1 #future
+        
+        try:
+            Goal.objects.get(goal_id_id = goalgroup, status = 0)
+            goal.status = -1 #future
+        except Goal.DoesNotExist:
+            goal.status = 0 # active
+            
         if goal.difficulty == 0:
             goal.base_points = 10
         elif goal.difficulty == 1:
@@ -291,6 +326,27 @@ def add_actionitem(request, goalgroup):
         goal.save()
         
     return HttpResponseRedirect(reverse('core.views.dashboard'))
+
+def add_friendpoint(request, goal):
+    current_user = get_object_or_404(LyfeUser, pk=request.user.username)
+    goal = Goal.objects.get(pk = goal)
+    lyfeuser = goal.goal_id.ownerid
+    
+    # check for cheating
+    if current_user.pk != lyfeuser.pk:
+        if current_user.last_fp_given:
+            difference = datetime.now(UTC()) - current_user.last_fp_given
+            if difference.total_seconds() < 3600:
+            
+                return HttpResponseRedirect(reverse('core.views.profile', kwargs={'username' : lyfeuser.username}))
+            
+        current_user.last_fp_given = datetime.now()
+        current_user.save()
+        
+        goal.friend_points += 1
+        goal.save()
+        
+    return HttpResponseRedirect(reverse('core.views.profile', kwargs={'username' : lyfeuser.username}))
 
 class MyRegistrationForm(UserCreationForm):
     class Meta:
