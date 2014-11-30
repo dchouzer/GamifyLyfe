@@ -31,8 +31,69 @@ function toggleDiv(divId) {
     <li>Avatar: <br>
     <img src="{{ lyfeuser.avatar.url }}" /></li>
     </ul>
+    <h3>ACTIVE GOAL OVERVIEW</h3>
+    <ul>
+    {% for goalgroup, groupgoals in activegoalitems %}
+        <li>{{ goalgroup }}
+        <ul>
+            {% for goal, goalupdates in groupgoals %}
+                {% if goal.status = 0 %}
+                <li><span class="{{goal.get_status_display}}"><b>{{ goal }}</b></span> ({{goal.get_status_display}})
+               
+               <a href="javascript:toggleDiv('update_{{goal.pk}}');">+ Submit Progress Update</a>
+                <div style="display: none;" id = "update_{{goal.pk}}">
+                    <form method="post" action="{% url 'core.views.post_update' goal.pk %}">
+                    {% csrf_token %}
+                    <p>
+                    {{ updateform.content }} <br>
+                    {{ updateform.completion }} Goal Complete? 
+                    </p>
+                    <input type="submit" value="Submit Update"/>
+                    </form>
+                </div>
+                
+                <br>
+                Base Points: {{ goal.base_points }} | Friend Points: {{ goal.friend_points }} | Time Points: {{ goal.time_points }}<br>
+                Start Date: {{ goal.start_date }} | Completion Date: {{ goal.completion_date }}
+           
+                {% if goalupdates|length > 0 %}
+                    <br>
+                    <a href="javascript:toggleDiv('view_updates_{{goal.pk}}');">+ Show Progress Updates ({{goalupdates|length}})</a>
+                    
+                    <div style="display: none;" id = "view_updates_{{goal.pk}}">
+                        <ul>{% for goalupdate, comments in goalupdates %}
+                            {{ goalupdate.timestamp }} {{ lyfeuser.username }} {% if goalupdate.completion %}completed goal: {% else %}posted update: {% endif %}{{ goalupdate.content }}<br>
+                              
+                            <a href="javascript:toggleDiv('add_goalcomment_{{goalupdate.pk}}');">+ Show Comments ({{comments|length}})</a>
+                            <br>
+                            <div style="display: none;" id = "add_goalcomment_{{goalupdate.pk}}">
+                                <ul>
+                                {% for comment in comments %}
+                                    {{ comment.timestamp }} | <b>{{ comment.creator_uid }}</b> commented: {{ comment.content }}<br>
+                                {% endfor %}
+                                
+                                {% if user.is_authenticated %}    
+                                <form method="post" action="{% url 'core.views.add_comment' goalupdate.pk %}">
+                                {% csrf_token %}
+                                <p>
+                                    <img src = "{{ lyfeuser| user_avatar_url}}" height = "50px"> {{ commentForm.content }}
+                                </p>
+                                </form>
+                                {% endif %}
+                                </ul>
+                            </div>
+                        {% endfor %}
+                        </ul>
+                    </div>
+                {% endif %}
+                {% endif %}
+            {% endfor %}
+        </ul>
+        </li>
+    {% endfor %}
+    </ul>
     
-    <h3>GOALS</h3>
+    <h3>GOAL MANAGEMENT</h3>
     <ul>
     {% for goalgroup, groupgoals in activegoalitems %}
         <li>{{ goalgroup }}
@@ -45,25 +106,12 @@ function toggleDiv(divId) {
                 <li>
                 <span class="{{goal.get_status_display}}"><b>{{ goal }}</b></span> ({{goal.get_status_display}})
                 
-                {% if goal.status == 0 %}
-                    <a href="javascript:toggleDiv('update_{{goal.pk}}');">+ Submit Progress Update</a>
-                    <div style="display: none;" id = "update_{{goal.pk}}">
-                        <form method="post" action="{% url 'core.views.post_update' goal.pk %}">
-                        {% csrf_token %}
-                        <p>
-                        {{ updateform.content }} <br>
-                        {{ updateform.completion }} Goal Complete? 
-                        </p>
-                        <input type="submit" value="Submit Update"/>
-                        </form>
-                    </div>
-                {% elif goal.status == -1 %}
+                {% if goal.status == -1 %}
                  | <a href = "{% url 'core.views.delete_goal' goal.pk %}">Delete Goal</a>
                  <!-- are you sure you want to delete this goal? -->
                 {% endif %}
                 
                 <br>
-                Base Points: {{ goal.base_points }} | Friend Points: {{ goal.friend_points }} | Time Points: {{ goal.time_points }}<br>
                 {% if goal.status == -1 %} <a href = "{% url 'core.views.flip_goals' goal.pk goal.order_num|add:'-1' %}">MOVE UP</a> | {% endif %} {% if goal.status != 1 %}<a href = "{% url 'core.views.flip_goals' goal.pk goal.order_num|add:'1' %}">MOVE DOWN</a><br>{% endif %}
                 </li>
             {% endfor %}
@@ -103,15 +151,43 @@ function toggleDiv(divId) {
         <li>{{ goalgroup }}
         <ul>
             {% for goal, goalupdates in groupgoals %}
-                <span class="{{goal.get_status_display}}"><b>{{ goal }}</b></span> ({{goal.get_status_display}})
+                <li><span class="{{goal.get_status_display}}"><b>{{ goal }}</b></span> ({{goal.get_status_display}})
                 
                 <br>
                 Base Points: {{ goal.base_points }} | Friend Points: {{ goal.friend_points }} | Time Points: {{ goal.time_points }}<br>
                 Start Date: {{ goal.start_date }} | Completion Date: {{ goal.completion_date }}
-               <br>
+                {% if goalupdates|length > 0 %}
+                <br>
+                    <a href="javascript:toggleDiv('view_updates_{{goal.pk}}');">+ Show Progress Updates ({{goalupdates|length}})</a>
+                    
+                    <div style="display: none;" id = "view_updates_{{goal.pk}}">
+                        <ul>{% for goalupdate, comments in goalupdates %}
+                            {{ goalupdate.timestamp }} {{ lyfeuser.username }} {% if goalupdate.completion %}completed goal: {% else %}posted update: {% endif %}{{ goalupdate.content }}<br>
+                              
+                            <a href="javascript:toggleDiv('add_goalcomment_{{goalupdate.pk}}');">+ Show Comments ({{comments|length}})</a><br>
+                            <div style="display: none;" id = "add_goalcomment_{{goalupdate.pk}}">
+                                <ul>
+                                {% for comment in comments %}
+                                    {{ comment.timestamp }} | <b>{{ comment.creator_uid }}</b> commented: {{ comment.content }}<br>
+                                {% endfor %}
+                                
+                                {% if user.is_authenticated %}    
+                                <form method="post" action="{% url 'core.views.add_comment' goalupdate.pk %}">
+                                {% csrf_token %}
+                                <p>
+                                    <img src = "{{ lyfeuser| user_avatar_url}}" height = "50px"> {{ commentForm.content }}
+                                </p>
+                                </form>
+                                {% endif %}
+                                </ul>
+                            </div>
+                        {% endfor %}
+                        </ul>
+                    </div>
+                {% endif %}
+                </li>
             {% endfor %}
          </li>
-            <br>
             <a href="javascript:toggleDiv('add_actionitem_{{goalgroup.pk}}{{goal.pk}}');">+ Add new goal</a>
             <div style="display: none;" id = "add_actionitem_{{goalgroup.pk}}{{goal.pk}}">
                 <form method="post" action="{% url 'core.views.add_actionitem' goalgroup.pk %}">
@@ -143,7 +219,7 @@ function toggleDiv(divId) {
     <ul>
         {% for update, comments in newsfeed %}
             <li> {{ update.user_id }} {% if update.completion %} completed {% else %} posted an update to {% endif %} goal <b>{{ update.goal_id }}</b> in category <i>{{ update.goal_id.goal_id }}</i> | {{ update.timestamp }}<br>
-            {{ update.content }}<br>
+            <ul>{{ update.content }}<br>
             
             <a href="javascript:toggleDiv('add_comment_{{update.pk}}');">+ Show Comments ({{comments|length}})</a>
             
@@ -159,6 +235,7 @@ function toggleDiv(divId) {
                 </form>
                 </ul>
             </div>
+            </ul>
         {% endfor %}
     </ul>
 {% endblock %}
