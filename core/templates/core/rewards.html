@@ -1,0 +1,41 @@
+{% extends "core/base.html" %}
+
+{% block heading %}My Rewards{% endblock %}
+
+{% block content %}    
+    You have {{ current_points }} points to spend!<br>
+    
+     <h3>MY REWARD STORE</h3>
+     <div style = "width: 100%">
+        {% for reward in rewards %}
+        {% if not reward.retired %}
+             <div style = "float: left; width: 130px; ">
+             <img height="100px" src = "../media/reward.jpg" /><br/>
+             {{ reward.description }}<br/>
+             <b>Cost:</b> {{ reward.worth }}<br/>
+             <a href = "{% url 'core.views.buy_reward' reward.pk %}">PURCHASE</a>
+             <a href = "{% url 'core.views.retire_reward' reward.pk %}">REMOVE</a>
+             </div>
+        {% endif %}
+     {% endfor %}
+    </div>
+        
+    <div style="clear: both;">
+     <h3>PURCHASED REWARDS</h3>
+     {% for reward in purchasedRewards %}
+        {{ reward.timestamp }} | <b>{{ reward.reward_id }}</b><br/>
+     {% endfor %}
+     
+     <h3>ADD NEW REWARD</h3>
+     <form method="post" action="{% url 'core.views.add_reward'%}">
+        {% csrf_token %}
+        <p>
+            Description/Name: {{ rewardform.description }}<br><br>
+            Point worth: {{ rewardform.worth }} points<br><br>
+            {{ rewardform.multiples }} Allow multiple purchases?
+        </p>
+        <input type="submit" value="Add new reward to my shop"/>
+     </form>
+    </div>                
+
+{% endblock %}

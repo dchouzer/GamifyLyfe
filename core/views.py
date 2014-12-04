@@ -122,7 +122,6 @@ def profile(request, username):
     { 'lyfeuser' : lyfeuser, 'activegoalitems' : activegoalitems, 'inactivegoalitems': inactivegoalitems, 'addfriend' : addfriend, 'friends' : friends, 'newsfeed' : newsfeed, 'friendpoints' : friendpoints, 'commentForm' : commentForm },
     context_instance=RequestContext(request))
 
-    
 def make_goalitems(goalgroups):
     activegoalitems = []
     inactivegoalitems = []
@@ -367,6 +366,7 @@ def add_actionitem(request, goalgroup):
             goal.status = -1 #future
         except Goal.DoesNotExist:
             goal.status = 0 # active
+            goal.start_date = date.today()
             
         if goal.difficulty == 0:
             goal.base_points = 10
@@ -415,6 +415,57 @@ def add_comment(request, update):
         
     return HttpResponseRedirect(request.META.get('HTTP_REFERER', '/'))
 
+""" REWARDS """
+def rewards(request):
+    current_user = LyfeUser.objects.get(pk=request.user.username)
+    rewards = Reward.objects.filter(user_id=current_user)
+    
+    rewardform = modelform_factory(Reward, fields=('description', 'worth', 'multiples'))
+    
+    purchasedRewards = RewardTransaction.objects.filter(reward_id__in=rewards)
+    
+    # purchasedRewards = RewardTransaction.objects.filter(reward_id_id__in=rewards_id)
+    
+    return render_to_response('core/rewards.html',
+    { 'rewards' : rewards, 'rewardform' : rewardform, 'purchasedRewards' : purchasedRewards, 'current_points' : current_user.cur_points },
+    context_instance=RequestContext(request))
+    
+def add_reward(request):
+    current_user = LyfeUser.objects.get(pk=request.user.username)
+    
+    RewardForm = modelform_factory(Reward, fields=('description', 'worth', 'multiples'))
+    rewardForm = RewardForm(request.POST)
+    reward = rewardForm.save(commit=False)
+    reward.user_id = current_user
+    reward.save()
+    
+    return HttpResponseRedirect(reverse('core.views.rewards'))
+    
+def buy_reward(request, reward):
+    current_user = LyfeUser.objects.get(pk=request.user.username)
+    reward = Reward.objects.get(id = reward)
+    
+    if current_user.cur_points >= reward.worth:
+        current_user.cur_points -= reward.worth
+        newTransaction = RewardTransaction(reward_id = reward)
+        current_user.save()
+        newTransaction.save()
+        
+        if not reward.multiples:
+            reward.retired = True
+            reward.save()
+  
+    return HttpResponseRedirect(reverse('core.views.rewards'))
+  
+def retire_reward(request, reward):
+    reward = Reward.objects.get(id = reward)
+    
+    reward.retired = True
+    reward.save()
+  
+    return HttpResponseRedirect(reverse('core.views.rewards'))
+      
+""" FORMS """
 class MyRegistrationForm(UserCreationForm):
     class Meta:
         model = User

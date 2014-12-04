@@ -134,6 +134,8 @@ class Reward(models.Model):
     user_id = models.ForeignKey(LyfeUser)
     description = models.CharField(max_length=50)
     worth = models.IntegerField()
+    multiples = models.BooleanField(default = True)
+    retired = models.BooleanField(default = False)
     
     class Meta:
         db_table = u'Reward'
@@ -143,11 +145,11 @@ class Reward(models.Model):
 class RewardTransaction(models.Model):
     reward_id = models.ForeignKey(Reward)
     timestamp = models.DateTimeField(auto_now_add = True)
-    
+
     class Meta:
         db_table = u'RewardTransaction'
     def __unicode__(self):
-        return self.description
+        return self.reward_id.description
   
 class Friend(models.Model):
     # unfriend removes entries
