@@ -1,0 +1,71 @@
+{% extends "core/base.html" %}
+
+{% block heading %}Group Page Information: {{ group.name }}{% endblock %}
+{% block script %}
+<script type="text/javascript">
+function toggleDiv(divId) {
+   $("#"+divId).toggle();
+}
+</script>
+{% endblock %}
+{% block content %}
+{% load extras %}
+<img height = "100px" src = " {{ group.logo.url }}"/><br>
+    {% if user.username == group.creator_id.pk %}
+    <a href="javascript:toggleDiv('new_group_logo');">+ Upload new logo</a>
+    <div style="display: none;" id = "new_group_logo">
+        <form action="{% url 'core.views.new_group_logo' group.id %}" method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            <p>{{ logoform.non_field_errors }}</p>
+            <p>{{ logoform.docfile.label_tag }} {{ logoform.docfile.help_text }}</p>
+            <p>
+                {{ logoform.docfile.errors }}
+                {{ logoform.docfile }}
+            </p>
+            <p><input type="submit" value="Upload new logo" /></p>
+        </form>
+    </div><br/>
+   {% endif %}
+<i>{{ group.description }}</i>
+
+{% if not requested and user.is_authenticated %}
+<br><br><a href = "{% url 'core.views.add_membership' group.pk %}">+ REQUEST TO JOIN GROUP</a><br>
+{% elif requested and not user_ismember %}
+<br><br>JOIN REQUEST SENT<br>
+{% endif %}
+
+<h3>MEMBERS</h3>
+{% for member in members %}
+    <a href = "{% url 'core.views.profile' member.pk %}"><img height = "50px" src = "{{member.pk|user_avatar_url}}"></a>
+{% endfor %}
+
+<h3>NEWSFEED</h3>
+{% if user_ismember %}
+{% for update, comments in newsfeed %}
+    <li> {{ update.user_id }} {% if update.completion %} completed {% else %} posted an update to {% endif %} goal <b>{{ update.goal_id }}</b> in category <i>{{ update.goal_id.goal_id }}</i> | {{ update.timestamp }}<br>
+    <ul>{{ update.content }}<br>
+    
+    <a href="javascript:toggleDiv('add_comment_{{update.pk}}');">+ Show Comments ({{comments|length}})</a>
+    
+    <div style="display: none;" id = "add_comment_{{update.pk}}">
+        <ul>
+        {% for comment in comments %}
+            {{ comment.timestamp }} | <b>{{ comment.creator_uid }}</b> commented: {{ comment.content }}<br>
+        {% endfor %}
+        
+        {% if user.is_authenticated %}    
+        <form method="post" action="{% url 'core.views.add_comment' update.pk %}">
+        {% csrf_token %}
+        <p>
+            <img src = "{{ lyfeuser| user_avatar_url}}" height = "50px"> {{ commentForm.content }}
+        </p>
+        </form>
+        {% endif %}
+        </ul>
+    </div>
+    </ul>
+{% endfor %}
+{% else %}
+Join group to see newsfeed
+{% endif %}
+{% endblock %}

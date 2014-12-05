@@ -100,17 +100,20 @@ class Goal(models.Model):
         
 class Group(models.Model):
     #default primary key id
-    name = models.CharField(max_length=20)
+    name = models.CharField(max_length=50)
+    description = models.CharField(max_length=500)
     creator_id = models.ForeignKey(LyfeUser)
+    logo = models.FileField(default='./default-logo.jpg')
     
     class Meta:
         db_table = u'Group'
     def __unicode__(self):
-        return str(self.pk)
+        return self.name
         
 class Membership(models.Model):
     group_id = models.ForeignKey(Group)
     user_id = models.ForeignKey(LyfeUser)
+    accepted = models.BooleanField(default = True)
     
     class Meta:
         unique_together = ('group_id', 'user_id')

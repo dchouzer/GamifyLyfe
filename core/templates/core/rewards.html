@@ -10,7 +10,7 @@
         {% for reward in rewards %}
         {% if not reward.retired %}
              <div style = "float: left; width: 130px; ">
-             <img height="100px" src = "../media/reward.jpg" /><br/>
+             <img height="100px" src = "{{STATIC_URL}}core/img/reward.jpg" /><br/>
              {{ reward.description }}<br/>
              <b>Cost:</b> {{ reward.worth }}<br/>
              <a href = "{% url 'core.views.buy_reward' reward.pk %}">PURCHASE</a>

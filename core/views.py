@@ -53,6 +53,17 @@ def dashboard(request):
     # friends
     friends = list(Friend.objects.filter(requester_id = lyfeuser, is_approved = True))
     
+    # groups
+    memberships = Membership.objects.filter(user_id = lyfeuser)
+    groups = []
+    membership_requests = []
+    
+    for membership in memberships:
+        groups.append(membership.group_id)
+        # if the user owns groups, show membership requests
+        if membership.group_id.creator_id == lyfeuser:
+            membership_requests.extend(Membership.objects.filter(group_id = membership.group_id, accepted = False))
+    
     # newsfeed
     friendIDs = []
     friendIDs.append(lyfeuser.pk) # you can see your own updates
@@ -75,8 +86,11 @@ def dashboard(request):
     # comment form
     commentForm = modelform_factory(Comment, fields=('content',), labels = {'content' : 'comment'}, widgets = {'content': forms.TextInput(attrs={'placeholder' : 'Add comment'})})
     
+    # group form
+    groupForm = modelform_factory(Group, fields=('name', 'description', 'logo'))
+    
     return render_to_response('core/dashboard.html',
-        { 'lyfeuser' : lyfeuser, 'activegoalitems' : activegoalitems, 'inactivegoalitems' : inactivegoalitems, 'friend_requests' : friend_requests, 'friends' : friends, 'updateform' : updateform, 'newsfeed' : newsfeed, 'goal_groupform' : goal_groupform, 'goal_formset' : goal_formset, 'actionitem_form' : actionitem_form, 'commentForm' : commentForm},
+        { 'lyfeuser' : lyfeuser, 'activegoalitems' : activegoalitems, 'inactivegoalitems' : inactivegoalitems, 'friend_requests' : friend_requests, 'membership_requests' : membership_requests, 'friends' : friends, 'groups' : groups, 'updateform' : updateform, 'newsfeed' : newsfeed, 'goal_groupform' : goal_groupform, 'goal_formset' : goal_formset, 'actionitem_form' : actionitem_form, 'commentForm' : commentForm, 'groupForm' : groupForm},
         context_instance=RequestContext(request))
 
 def profile(request, username):
@@ -121,7 +135,7 @@ def profile(request, username):
     return render_to_response('core/profile.html',
     { 'lyfeuser' : lyfeuser, 'activegoalitems' : activegoalitems, 'inactivegoalitems': inactivegoalitems, 'addfriend' : addfriend, 'friends' : friends, 'newsfeed' : newsfeed, 'friendpoints' : friendpoints, 'commentForm' : commentForm },
     context_instance=RequestContext(request))
-
+    
 def make_goalitems(goalgroups):
     activegoalitems = []
     inactivegoalitems = []
@@ -190,9 +204,14 @@ def unfriend(request, username):
         friend_request.delete()
         
     except Friend.DoesNotExist:
-        pass # not friends
+        # denying friend request
+        try:
+            original_request = Friend.objects.get(requester_id=lyfeuser, recipient_id = current_user)
+            original_request.delete()
+        except Friend.DoesNotExist:
+            pass
         
-    return HttpResponseRedirect(reverse('core.views.profile', kwargs={'username' : username}))
+    return HttpResponseRedirect(request.META.get('HTTP_REFERER', '/'))
 
 def avatar(request):
     current_user = get_object_or_404(LyfeUser, pk=request.user.username)
@@ -414,7 +433,86 @@ def add_comment(request, update):
         comment.save()
         
     return HttpResponseRedirect(request.META.get('HTTP_REFERER', '/'))
+    
+def group(request, group):
+    try:
+        current_user = LyfeUser.objects.get(pk=request.user.username)
+    except LyfeUser.DoesNotExist:
+        current_user = None
+        
+    group = get_object_or_404(Group, pk=group)
+    memberships = Membership.objects.filter(group_id = group)
+    
+    members = []
+    user_ismember = False
+    requested = False
+    
+    for membership in memberships:
+        if membership.accepted == True:
+            members.append(membership.user_id)
+        if current_user == membership.user_id:
+            user_ismember = membership.accepted
+            requested = True
+    
+    # logoform    
+    logoform = DocumentForm()
 
+    # newsfeed
+    updates = Update.objects.filter(user_id__in=members).order_by('timestamp').reverse()[:15]
+    newsfeed = make_newsfeed(updates)
+    
+    return render_to_response('core/group.html',
+    { 'group' : group, 'user_ismember' : user_ismember, 'members' : members, 'newsfeed' : newsfeed, 'logoform' : logoform, 'requested' : requested},
+    context_instance=RequestContext(request))
+
+def new_group_logo(request, group):
+    group = Group.objects.get(id = group)
+    
+    form = DocumentForm(request.POST, request.FILES)
+    if form.is_valid():
+        group.logo = request.FILES['docfile']
+        group.save()
+
+    return HttpResponseRedirect(request.META.get('HTTP_REFERER', '/'))
+
+def add_group(request):
+    current_user = LyfeUser.objects.get(pk=request.user.username)
+    
+    GroupForm = modelform_factory(Group, fields=('name', 'description', 'logo'))
+    
+    newGroup = GroupForm(request.POST, request.FILES)
+    if newGroup.is_valid():
+        group = newGroup.save(commit=False)
+        group.creator_id = current_user
+        group.save()
+        
+        defaultMembership = Membership(group_id = group, user_id = current_user)
+        defaultMembership.save()
+        
+    return HttpResponseRedirect(reverse('core.views.dashboard'))
+
+def add_membership(request, group):
+    current_user = LyfeUser.objects.get(pk=request.user.username)
+    
+    newMembership = Membership(user_id = current_user, group_id_id = group, accepted = False)
+    newMembership.save()
+    
+    return HttpResponseRedirect(request.META.get('HTTP_REFERER', '/'))
+    
+def approve_membership(request, membership):
+    membership = Membership.objects.get(id = membership)
+    membership.accepted = True
+    membership.save()
+    
+    return HttpResponseRedirect(request.META.get('HTTP_REFERER', '/'))
+
+def deny_membership(request, membership):
+    membership = Membership.objects.get(id = membership)
+    membership.delete()
+    
+    return HttpResponseRedirect(request.META.get('HTTP_REFERER', '/'))
+    
+    return HttpResponseRedirect(request.META.get('HTTP_REFERER', '/'))
 """ REWARDS """
 def rewards(request):
     current_user = LyfeUser.objects.get(pk=request.user.username)
@@ -423,8 +521,6 @@ def rewards(request):
     rewardform = modelform_factory(Reward, fields=('description', 'worth', 'multiples'))
     
     purchasedRewards = RewardTransaction.objects.filter(reward_id__in=rewards)
-    
-    # purchasedRewards = RewardTransaction.objects.filter(reward_id_id__in=rewards_id)
     
     return render_to_response('core/rewards.html',
     { 'rewards' : rewards, 'rewardform' : rewardform, 'purchasedRewards' : purchasedRewards, 'current_points' : current_user.cur_points },
