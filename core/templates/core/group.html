@@ -60,7 +60,7 @@ function toggleDiv(divId) {
 {% elif requested and not user_ismember %}
 <br><br>JOIN REQUEST SENT<br>
 {% elif requested and user_ismember.accepted and user.username != group.creator_id.pk %}
-<br><br><a href = "{% url 'core.views.deny_membership' user_ismember %}">LEAVE GROUP</a><br>
+<br><br><a href = "{% url 'core.views.deny_membership' user_ismember.id %}">LEAVE GROUP</a><br>
 {% endif %}
 
 <h3>MEMBERS</h3>

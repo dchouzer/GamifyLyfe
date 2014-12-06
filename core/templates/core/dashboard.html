@@ -103,7 +103,7 @@ function toggleDiv(divId) {
     <h3>GOAL MANAGEMENT</h3>
     <ul>
     {% for goalgroup, groupgoals in activegoalitems %}
-        <li>{{ goalgroup }}
+        <li>{{ goalgroup }} | Shared with: {{ goalgroup.get_sharee_display }} <a href="{% url 'core.views.share_settings' goalgroup.pk %}"> > Change Share Settings</a>
         <ul>
             {% for goal, updates in groupgoals %}
                 {% if goal.order_num == 0 and goal.status == 0 %}
@@ -141,7 +141,7 @@ function toggleDiv(divId) {
             <form method="post" action="{% url 'core.views.add_goal' %}">
             {% csrf_token %}
             <p>
-                {{ goal_groupform }}
+                Category Name: {{ goal_groupform.name }} | Sharee: {{ goal_groupform.sharee }}
                 <ul>
                    {{ goal_formset }}
                 </ul>

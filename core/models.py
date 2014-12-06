@@ -109,7 +109,7 @@ class Goal(models.Model):
         return self.name
         
 class Group(models.Model):
-    #default group id
+    # default group id
     name = models.CharField(max_length=50)
     description = models.CharField(max_length=500)
     creator_id = models.ForeignKey(LyfeUser)
@@ -132,17 +132,18 @@ class Membership(models.Model):
         return self.user_id.username + " in " + self.group_id.name
         
 class ShareSetting(models.Model):
-    goal_id = models.ForeignKey(GoalGroup)
+    # should probably be named goalgroup_id, however everything will break if I change this again
+    goal_id = models.ForeignKey(GoalGroup) 
     group_id = models.ForeignKey(Group)
     
     class Meta:
         unique_together = ('goal_id', 'group_id')
         db_table = u'ShareSetting'
     def __unicode__(self):
-        return str(self.pk)
+        return self.goal_id.name + " with " + self.group_id.name
         
 class Reward(models.Model):
-    # default reward_id
+    # default reward id
     user_id = models.ForeignKey(LyfeUser)
     description = models.CharField(max_length=50)
     worth = models.IntegerField()
@@ -179,7 +180,7 @@ class Friend(models.Model):
         return self.requester_id.pk + "|" + self.recipient_id.pk
         
 class Update(models.Model):
-    # default update ID
+    # default update id
     user_id = models.ForeignKey(LyfeUser) # helpful for filtering updates
     goal_id = models.ForeignKey(Goal, null = True, blank = True)
     timestamp = models.DateTimeField(auto_now_add = True)

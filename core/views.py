@@ -80,7 +80,7 @@ def dashboard(request):
     updateform = modelform_factory(Update, fields = ('content', 'completion'), widgets = {'content': forms.Textarea}, labels = {'content' : ''})
     
     # goal category form
-    goal_groupform = modelform_factory(GoalGroup, fields=('name',), labels = {'name' : 'Category name'})
+    goal_groupform = modelform_factory(GoalGroup, fields=('name', 'sharee'), labels = {'name' : 'Category name'})
     goal_formset = inlineformset_factory(GoalGroup, Goal, extra=1, fields = ('name', 'difficulty'), can_delete = False, labels = {'name' : 'Initial goal'})
       
     # goal form
@@ -95,6 +95,76 @@ def dashboard(request):
     return render_to_response('core/dashboard.html',
         { 'lyfeuser' : lyfeuser, 'activegoalitems' : activegoalitems, 'inactivegoalitems' : inactivegoalitems, 'friend_requests' : friend_requests, 'membership_requests' : membership_requests, 'friends' : friends, 'groups' : groups, 'updateform' : updateform, 'newsfeed' : newsfeed, 'goal_groupform' : goal_groupform, 'goal_formset' : goal_formset, 'actionitem_form' : actionitem_form, 'commentForm' : commentForm, 'groupForm' : groupForm},
         context_instance=RequestContext(request))
+
+""" SHARING """
+def share_settings(request, goalgroup):
+    current_user = LyfeUser.objects.get(pk=request.user.username)
+    
+    goalGroup = GoalGroup.objects.get(id = goalgroup)
+    goalGroupForm = modelform_factory(GoalGroup, fields=('sharee',))
+    editGoalGroupForm = goalGroupForm(instance = goalGroup)
+
+    shareSettingForm = modelform_factory(ShareSetting, fields=('group_id',))
+    
+    groups = get_shareable_groups(current_user, goalgroup)
+    shareSettingForm.base_fields['group_id'].queryset = groups
+    
+    shareSettings = ShareSetting.objects.filter(goal_id = goalGroup)
+    
+    return render_to_response('core/sharesettings.html',
+    { 'goalGroup' : goalGroup, 'shareSettings' : shareSettings, 'editGoalGroupForm' : editGoalGroupForm, 'shareSettingForm' : shareSettingForm },
+    context_instance=RequestContext(request))
+    
+# get the queryset of groups that user is a member of that and isn't currently sharing with    
+def get_shareable_groups(current_user, goalgroup):
+    memberof = Membership.objects.filter(user_id = current_user).values_list('group_id', flat=True)
+    groupids = []
+    
+    for group in memberof:
+        try:
+            ShareSetting.objects.get(goal_id_id = goalgroup, group_id = group)
+        except ShareSetting.DoesNotExist:
+            groupids.append(group)
+            
+    return Group.objects.filter(id__in = groupids)
+    
+def edit_sharee(request, goalgroup):
+    goalGroup = GoalGroup.objects.get(id = goalgroup)
+    
+    goalGroupForm = modelform_factory(GoalGroup, fields=('sharee',))
+    editGoalGroupForm = goalGroupForm(request.POST, instance = goalGroup)
+    editedGoalGroup = editGoalGroupForm.save(commit = False)
+    editedGoalGroup.save()
+    
+    return HttpResponseRedirect(request.META.get('HTTP_REFERER', '/'))
+    
+def add_share_setting(request, goalgroup):
+    goalGroup = GoalGroup.objects.get(id = goalgroup)
+    
+    shareSettingForm = modelform_factory(ShareSetting, fields=('group_id',))
+    shareForm = shareSettingForm(request.POST)
+    newShareSetting = shareForm.save(commit=False)
+    newShareSetting.goal_id = goalGroup
+    newShareSetting.save()
+    
+    return HttpResponseRedirect(request.META.get('HTTP_REFERER', '/'))
+
+def add_all_sharesettings(request, goalgroup):
+    goalGroup = GoalGroup.objects.get(id = goalgroup)
+    current_user = LyfeUser.objects.get(pk=request.user.username)
+    
+    groups = get_shareable_groups(current_user, goalgroup)
+    for group in groups:
+        newSetting = ShareSetting(goal_id = goalGroup, group_id = group)
+        newSetting.save()
+        
+    return HttpResponseRedirect(request.META.get('HTTP_REFERER', '/'))
+        
+def delete_share_setting(request, sharesetting):
+    shareSetting = ShareSetting.objects.get(id = sharesetting)
+    shareSetting.delete()
+    
+    return HttpResponseRedirect(request.META.get('HTTP_REFERER', '/'))
 
 def profile(request, username):
     try:
@@ -149,6 +219,7 @@ def profile(request, username):
     { 'lyfeuser' : lyfeuser, 'activegoalitems' : activegoalitems, 'inactivegoalitems': inactivegoalitems, 'addfriend' : addfriend, 'friendship' : friendship, 'friends' : friends, 'groups' : groups, 'newsfeed' : newsfeed, 'friendpoints' : friendpoints, 'commentForm' : commentForm },
     context_instance=RequestContext(request))
     
+""" USER INFO HELPER METHODS """
 def make_goalitems(goalgroups):
     activegoalitems = []
     inactivegoalitems = []
@@ -181,6 +252,7 @@ def make_newsfeed(updates):
 
     return newsfeed
     
+""" PROFILE """   
 def addfriend(request, username):
     current_user = get_object_or_404(LyfeUser, pk=request.user.username)
     lyfeuser = get_object_or_404(LyfeUser, pk=username)
@@ -229,6 +301,7 @@ def unfriend(request, username):
         
     return HttpResponseRedirect(request.META.get('HTTP_REFERER', '/'))
 
+""" DASHBOARD """
 def avatar(request):
     current_user = get_object_or_404(LyfeUser, pk=request.user.username)
     
@@ -313,9 +386,10 @@ def post_content_update(user, content, public = True, goal = None):
     update.goal_id = goal
     update.public = public
     update.save()
-    
+
+""" GOALS """    
 def add_goal(request):
-    GoalGroupForm = modelform_factory(GoalGroup, fields=('name',))
+    GoalGroupForm = modelform_factory(GoalGroup, fields=('name', 'sharee'))
     GoalFormSet = inlineformset_factory(GoalGroup, Goal, extra=1, fields = ('name', 'difficulty'), can_delete = False)
     
     goalGroupForm = GoalGroupForm(request.POST)
@@ -344,7 +418,7 @@ def delete_goal(request, goal):
     deletegoal = Goal.objects.get(pk = goal)
     
     if deletegoal.status == -1:
-        ''' update order_num indices as appropriate '''
+        # updateS order_num indices as appropriate
         index = deletegoal.order_num + 1
         processing = True
         
@@ -514,7 +588,6 @@ def edit_group(request, group):
     
     GroupForm = modelform_factory(Group, fields=('name', 'description'))
     groupForm = GroupForm(request.POST, instance = group)
-    #editGroupForm = GroupForm(instance = group)
     editedGroup = groupForm.save(commit = False)
     editedGroup.save()
     

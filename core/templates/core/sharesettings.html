@@ -1,0 +1,32 @@
+{% extends "core/base.html" %}
+
+{% block heading %}Share Settings for <b>{{ goalGroup }}</b>{% endblock %}
+
+{% block content %}    
+    
+    <form action="{% url 'core.views.edit_sharee' goalGroup.pk %}" method="post">
+        {% csrf_token %}
+        <p>{{ editGroupForm.non_field_errors }}</p>
+        <p>
+           Updates current shared with: {{ editGoalGroupForm.sharee }}
+        </p>
+        <p><input type="submit" value="Save" /></p>
+    </form>
+    
+    <h3>SHARE GROUPS</h3>
+    <ul>
+    {% for setting in shareSettings %}
+    <li>{{ setting.group_id }} | <a href = "{% url 'core.views.delete_share_setting' setting.pk %}">DELETE</a></li>
+    {% endfor %}
+    </ul> 
+     <a href = "{% url 'core.views.add_all_sharesettings' goalGroup.pk %}">ADD ALL MY GROUPS</a><br>
+     <form method="post" action="{% url 'core.views.add_share_setting' goalGroup.pk %}">
+        {% csrf_token %}
+        <p>
+            Share updates with: {{ shareSettingForm.group_id }}<br>
+        </p>
+        <input type="submit" value="Add Group Rule"/>
+     </form>
+    </div>                
+
+{% endblock %}
