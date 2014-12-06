@@ -54,7 +54,7 @@ def dashboard(request):
     friends = list(Friend.objects.filter(requester_id = lyfeuser, is_approved = True))
     
     # groups
-    memberships = Membership.objects.filter(user_id = lyfeuser)
+    memberships = Membership.objects.filter(user_id = lyfeuser, accepted = True)
     groups = []
     membership_requests = []
     
@@ -70,7 +70,10 @@ def dashboard(request):
     for friend in friends:
         friendIDs.append(friend.recipient_id)
         
-    updates = Update.objects.filter(user_id_id__in=friendIDs).order_by('timestamp').reverse()[:15] 
+    updates = list(Update.objects.filter(user_id_id__in=friendIDs).order_by('timestamp').reverse()[:15]) 
+    for update in updates:
+        if not update.public and update.user_id != lyfeuser:
+            updates.remove(update)
     newsfeed = make_newsfeed(updates)
     
     # update form
@@ -101,12 +104,15 @@ def profile(request, username):
         
     lyfeuser = get_object_or_404(LyfeUser, pk=username)
     addfriend = False
+    friendship = False
     friendpoints = False
                     
     if current_user != None and current_user.pk != lyfeuser.pk:
         try:
             friendship = Friend.objects.get(requester_id=current_user, recipient_id = lyfeuser)
             # user has friend request or accepted other user
+            if friendship.is_approved:
+                friendship = True
         except Friend.DoesNotExist:
             addfriend = True
             # not friends
@@ -125,6 +131,13 @@ def profile(request, username):
     # friends
     friends = list(Friend.objects.filter(requester_id = lyfeuser, is_approved = True))
     
+    # groups
+    memberships = Membership.objects.filter(user_id = lyfeuser, accepted = True)
+    groups = []
+    
+    for membership in memberships:
+        groups.append(membership.group_id)
+
     # newsfeed
     updates = Update.objects.filter(user_id=lyfeuser).order_by('timestamp').reverse()[:15]
     newsfeed = make_newsfeed(updates)
@@ -133,7 +146,7 @@ def profile(request, username):
     commentForm = modelform_factory(Comment, fields=('content',), labels = {'content' : 'comment'}, widgets = {'content': forms.TextInput(attrs={'placeholder' : 'Add comment'})})
     
     return render_to_response('core/profile.html',
-    { 'lyfeuser' : lyfeuser, 'activegoalitems' : activegoalitems, 'inactivegoalitems': inactivegoalitems, 'addfriend' : addfriend, 'friends' : friends, 'newsfeed' : newsfeed, 'friendpoints' : friendpoints, 'commentForm' : commentForm },
+    { 'lyfeuser' : lyfeuser, 'activegoalitems' : activegoalitems, 'inactivegoalitems': inactivegoalitems, 'addfriend' : addfriend, 'friendship' : friendship, 'friends' : friends, 'groups' : groups, 'newsfeed' : newsfeed, 'friendpoints' : friendpoints, 'commentForm' : commentForm },
     context_instance=RequestContext(request))
     
 def make_goalitems(goalgroups):
@@ -175,6 +188,9 @@ def addfriend(request, username):
         friend_request = Friend(requester_id = current_user, recipient_id = lyfeuser)
         try:
             original_request = Friend.objects.get(requester_id=lyfeuser, recipient_id = current_user)
+            post_content_update(lyfeuser, lyfeuser.username + " is now friends with " + current_user.username + "!")
+            post_content_update(current_user, current_user.username + " is now friends with " + lyfeuser.username + "!")
+
             original_request.is_approved = True
             friend_request.is_approved = True
             
@@ -252,6 +268,7 @@ def post_update(request, goal):
         update = updateForm.save(commit=False)
         updatedGoal = Goal.objects.get(pk = goal)
             
+        # allow goal updates to complete
         if update.completion:
             updatedGoal.status = 1 # complete
             updatedGoal.completion_date = date.today()
@@ -265,10 +282,12 @@ def post_update(request, goal):
             try:
                 nextGoal = Goal.objects.get(goal_id = updatedGoal.goal_id, order_num = updatedGoal.order_num+1)
                 nextGoal.status = 0 # active
+                nextGoal.start_date = date.today()
                 nextGoal.save()
             except Goal.DoesNotExist:
                 pass
-            
+                
+        # check non-goal updates for time. If valid, give time points
         else:
             try:
                 lastupdate = Update.objects.filter(goal_id = updatedGoal.pk).latest('timestamp')
@@ -289,6 +308,12 @@ def post_update(request, goal):
             
     return HttpResponseRedirect(reverse('core.views.dashboard'))
 
+def post_content_update(user, content, public = True, goal = None):
+    update = Update(user_id = user, content = content)
+    update.goal_id = goal
+    update.public = public
+    update.save()
+    
 def add_goal(request):
     GoalGroupForm = modelform_factory(GoalGroup, fields=('name',))
     GoalFormSet = inlineformset_factory(GoalGroup, Goal, extra=1, fields = ('name', 'difficulty'), can_delete = False)
@@ -422,18 +447,22 @@ def add_friendpoint(request, goal):
     return HttpResponseRedirect(reverse('core.views.profile', kwargs={'username' : lyfeuser.username}))
 
 def add_comment(request, update):
-    #current_user = get_object_or_404(LyfeUser, pk=request.user.username)
+    current_user = get_object_or_404(LyfeUser, pk=request.user.username)
     CommentForm = modelform_factory(Comment, fields=('content',), labels = {'content' : 'comment'})
     newComment = CommentForm(request.POST, request.FILES)
+    commentedUpdate = Update.objects.get(id = update)
     
     if newComment.is_valid():
         comment = newComment.save(commit=False)
-        comment.creator_uid_id = request.user.username
-        comment.update_id_id = update
+        # yay injecting code... no sanitization.
+        post_content_update(commentedUpdate.user_id, current_user.username + " commented on your update: \"" + commentedUpdate.content + "\" with \"" + comment.content + "\"", False, commentedUpdate.goal_id)
+        comment.creator_uid = current_user
+        comment.update_id = commentedUpdate
         comment.save()
         
     return HttpResponseRedirect(request.META.get('HTTP_REFERER', '/'))
-    
+
+""" GROUPS """
 def group(request, group):
     try:
         current_user = LyfeUser.objects.get(pk=request.user.username)
@@ -444,14 +473,14 @@ def group(request, group):
     memberships = Membership.objects.filter(group_id = group)
     
     members = []
-    user_ismember = False
+    user_ismember = None
     requested = False
     
     for membership in memberships:
         if membership.accepted == True:
             members.append(membership.user_id)
         if current_user == membership.user_id:
-            user_ismember = membership.accepted
+            user_ismember = membership
             requested = True
     
     # logoform    
@@ -461,8 +490,12 @@ def group(request, group):
     updates = Update.objects.filter(user_id__in=members).order_by('timestamp').reverse()[:15]
     newsfeed = make_newsfeed(updates)
     
+    # edit group form
+    groupForm = modelform_factory(Group, fields=('name', 'description'))
+    editGroupForm = groupForm(instance = group)
+        
     return render_to_response('core/group.html',
-    { 'group' : group, 'user_ismember' : user_ismember, 'members' : members, 'newsfeed' : newsfeed, 'logoform' : logoform, 'requested' : requested},
+    { 'group' : group, 'user_ismember' : user_ismember, 'memberships' : memberships, 'members' : members, 'newsfeed' : newsfeed, 'logoform' : logoform, 'editGroupForm' : editGroupForm, 'requested' : requested},
     context_instance=RequestContext(request))
 
 def new_group_logo(request, group):
@@ -474,6 +507,28 @@ def new_group_logo(request, group):
         group.save()
 
     return HttpResponseRedirect(request.META.get('HTTP_REFERER', '/'))
+
+def edit_group(request, group):
+    current_user = LyfeUser.objects.get(pk=request.user.username)
+    group = Group.objects.get(id = group)
+    
+    GroupForm = modelform_factory(Group, fields=('name', 'description'))
+    groupForm = GroupForm(request.POST, instance = group)
+    #editGroupForm = GroupForm(instance = group)
+    editedGroup = groupForm.save(commit = False)
+    editedGroup.save()
+    
+    return HttpResponseRedirect(request.META.get('HTTP_REFERER', '/'))
+
+def delete_group(request, group):
+    current_user = LyfeUser.objects.get(pk=request.user.username)
+    group = Group.objects.get(id = group)
+    
+    # permission check
+    if current_user == group.creator_id:
+        group.delete()
+    
+    return HttpResponseRedirect(reverse('core.views.dashboard'))
 
 def add_group(request):
     current_user = LyfeUser.objects.get(pk=request.user.username)
@@ -501,9 +556,11 @@ def add_membership(request, group):
     
 def approve_membership(request, membership):
     membership = Membership.objects.get(id = membership)
+    
+    post_content_update(membership.user_id, membership.user_id.username + " joined group: " + membership.group_id.name + "!")
     membership.accepted = True
     membership.save()
-    
+        
     return HttpResponseRedirect(request.META.get('HTTP_REFERER', '/'))
 
 def deny_membership(request, membership):
@@ -512,7 +569,6 @@ def deny_membership(request, membership):
     
     return HttpResponseRedirect(request.META.get('HTTP_REFERER', '/'))
     
-    return HttpResponseRedirect(request.META.get('HTTP_REFERER', '/'))
 """ REWARDS """
 def rewards(request):
     current_user = LyfeUser.objects.get(pk=request.user.username)
@@ -520,7 +576,7 @@ def rewards(request):
     
     rewardform = modelform_factory(Reward, fields=('description', 'worth', 'multiples'))
     
-    purchasedRewards = RewardTransaction.objects.filter(reward_id__in=rewards)
+    purchasedRewards = RewardTransaction.objects.filter(reward_id__in=rewards).order_by('timestamp').reverse()[:10]
     
     return render_to_response('core/rewards.html',
     { 'rewards' : rewards, 'rewardform' : rewardform, 'purchasedRewards' : purchasedRewards, 'current_points' : current_user.cur_points },
@@ -540,8 +596,11 @@ def add_reward(request):
 def buy_reward(request, reward):
     current_user = LyfeUser.objects.get(pk=request.user.username)
     reward = Reward.objects.get(id = reward)
+    error_messages = ""
     
     if current_user.cur_points >= reward.worth:
+        post_content_update(current_user, current_user.username + " bought reward: " + reward.description + " for " + str(reward.worth) + " points!")
+        
         current_user.cur_points -= reward.worth
         newTransaction = RewardTransaction(reward_id = reward)
         current_user.save()
@@ -550,7 +609,9 @@ def buy_reward(request, reward):
         if not reward.multiples:
             reward.retired = True
             reward.save()
-  
+    else:
+        error_messages = "You don't have enough points!"
+        # , kwargs={'error_message' : error_message} TODO: look into optional kwargs
     return HttpResponseRedirect(reverse('core.views.rewards'))
   
 def retire_reward(request, reward):

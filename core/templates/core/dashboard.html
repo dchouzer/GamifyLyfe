@@ -24,7 +24,7 @@ function toggleDiv(divId) {
         <h3>FRIEND REQUESTS</h3>
         
         {% for request in friend_requests %}
-        {{ request.requester_id }}<br>
+        <a href = "{% url 'core.views.profile' request.requester_id %}">{{ request.requester_id }}</a><br>
         <a href="{% url 'core.views.addfriend' request.requester_id %}">Add Friend</a> | <a href="{% url 'core.views.unfriend' request.requester_id %}">Deny</a><br>
         {% endfor %}
     {% endif %}
@@ -33,7 +33,7 @@ function toggleDiv(divId) {
         <h3>GROUP MEMBERSHIP REQUESTS</h3>
         
         {% for request in membership_requests %}
-        <b>{{ request.user_id }}</b> requests approval to join <b>{{ request.group_id }}</b><br/>
+        <a href = "{% url 'core.views.profile' request.user_id %}">{{ request.user_id }}</a> requests approval to join <b>{{ request.group_id }}</b><br/>
         <a href="{% url 'core.views.approve_membership' request.pk %}">Approve</a> | <a href="{% url 'core.views.deny_membership' request.pk %}">Deny</a><br/>
         {% endfor %}
     {% endif %}
@@ -216,7 +216,7 @@ function toggleDiv(divId) {
     <h3>MY GROUPS</h3>
     <ul>
     {% for group in groups %}
-        <li><a href = "{% url 'core.views.group' group.pk %}"> {{ group.name }}</a> | {% if group.creator_id == lyfeuser %} DELETE {% endif %}</li>
+        <li><a href = "{% url 'core.views.group' group.pk %}"> {{ group.name }}</a></li>
     {% endfor %}
     </ul>
     
@@ -245,23 +245,25 @@ function toggleDiv(divId) {
     <br><br>
     <ul>
         {% for update, comments in newsfeed %}
-            <li> {{ update.user_id }} {% if update.completion %} completed {% else %} posted an update to {% endif %} goal <b>{{ update.goal_id }}</b> in category <i>{{ update.goal_id.goal_id }}</i> | {{ update.timestamp }}<br>
-            <ul>{{ update.content }}<br>
-            
+            <li>{% if update.goal_id and update.public %}{{ update.user_id }}{% if update.completion %} completed {% else %} posted an update to {% endif %} goal <b>{{ update.goal_id }}</b> in category <i>{{ update.goal_id.goal_id }}</i> | {{ update.timestamp }}<br>
+            <ul>{{ update.content }}<br>{% else %} {{ update.content }}<ul> {% endif %}
+            {% if update.public %}
             <a href="javascript:toggleDiv('add_comment_{{update.pk}}');">+ Show Comments ({{comments|length}})</a>
             
             <div style="display: none;" id = "add_comment_{{update.pk}}">
                 <ul>{% for comment in comments %}
                     {{ comment.timestamp }} | <b>{{ comment.creator_uid }}</b> commented: {{ comment.content }}<br>
                 {% endfor %}
+                
                 <form method="post" action="{% url 'core.views.add_comment' update.pk %}">
                 {% csrf_token %}
                 <p>
-                    <img src = "{{ lyfeuser| user_avatar_url}}" height = "50px"> {{ commentForm.content }}
+                    <img src = "{{ lyfeuser | user_avatar_url}}" height = "50px"> {{ commentForm.content }}
                 </p>
                 </form>
                 </ul>
             </div>
+            {% endif %}
             </ul>
         {% endfor %}
     </ul>

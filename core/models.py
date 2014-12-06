@@ -91,7 +91,17 @@ class Goal(models.Model):
     est_date = models.DateField(auto_now_add = True)
     start_date = models.DateField(null=True, blank=True)
     completion_date = models.DateField(null = True, blank=True)
-
+    
+    PRIVATE = 0
+    PUBLIC = 1
+    FRIENDS = 2
+    DIFF_CHOICES = (
+        (PRIVATE, 'private'),
+        (PUBLIC, 'public'),
+        (FRIENDS, 'friends')
+    )
+    sharee = models.IntegerField(choices=DIFF_CHOICES, default=PUBLIC)
+    
     class Meta:
         unique_together = ('goal_id', 'order_num')
         db_table = u'Goal'
@@ -119,15 +129,14 @@ class Membership(models.Model):
         unique_together = ('group_id', 'user_id')
         db_table = u'Membership'
     def __unicode__(self):
-        return str(self.pk)
+        return self.user_id.username + " in " + self.group_id.name
         
 class ShareSetting(models.Model):
     goal_id = models.ForeignKey(GoalGroup)
-    sharee = models.CharField(max_length=20, default = "public") 
-    # public, private, friends, or a groupid, maxlength should be gid length or 7
+    group_id = models.ForeignKey(Group)
     
     class Meta:
-        unique_together = ('goal_id', 'sharee')
+        unique_together = ('goal_id', 'group_id')
         db_table = u'ShareSetting'
     def __unicode__(self):
         return str(self.pk)
@@ -172,10 +181,11 @@ class Friend(models.Model):
 class Update(models.Model):
     # default update ID
     user_id = models.ForeignKey(LyfeUser) # helpful for filtering updates
-    goal_id = models.ForeignKey(Goal)
+    goal_id = models.ForeignKey(Goal, null = True, blank = True)
     timestamp = models.DateTimeField(auto_now_add = True)
     content = models.CharField(max_length=500) #file ref or something?
     completion = models.BooleanField(default = False)
+    public = models.BooleanField(default = True)
     
     class Meta:
         db_table = u'Update'

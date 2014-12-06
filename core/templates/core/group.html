@@ -11,7 +11,10 @@ function toggleDiv(divId) {
 {% block content %}
 {% load extras %}
 <img height = "100px" src = " {{ group.logo.url }}"/><br>
+<br>
+<i>{{ group.description }}</i>
     {% if user.username == group.creator_id.pk %}
+    <h3>GROUP MANAGEMENT</h3>
     <a href="javascript:toggleDiv('new_group_logo');">+ Upload new logo</a>
     <div style="display: none;" id = "new_group_logo">
         <form action="{% url 'core.views.new_group_logo' group.id %}" method="post" enctype="multipart/form-data">
@@ -25,13 +28,39 @@ function toggleDiv(divId) {
             <p><input type="submit" value="Upload new logo" /></p>
         </form>
     </div><br/>
+    
+    <a href="javascript:toggleDiv('edit_group');">+ Edit Group</a>
+    <div style="display: none;" id = "edit_group">
+        <form action="{% url 'core.views.edit_group' group.id %}" method="post">
+            {% csrf_token %}
+            <p>{{ editGroupForm.non_field_errors }}</p>
+            <p>
+                Name: {{ editGroupForm.name }}<br>
+                Description: {{ editGroupForm.description }}
+            </p>
+            <p><input type="submit" value="Submit changes" /></p>
+        </form>
+    </div><br/>
+    
+    <a href="javascript:toggleDiv('deny_membership');">+ Remove Members</a>
+    <div style="display: none;" id = "deny_membership">
+        {% for membership in memberships %}
+            {% if membership.accepted and membership.user_id != group.creator_id %}
+            <a href = "{% url 'core.views.deny_membership' membership.id %}">Remove {{ membership.user_id }}</a>
+            {% endif %}
+        {% endfor %}
+    </div><br/>
+    
+    <a href = "{% url 'core.views.delete_group' group.pk %}">DELETE GROUP</a><br>
+    
    {% endif %}
-<i>{{ group.description }}</i>
-
+   
 {% if not requested and user.is_authenticated %}
 <br><br><a href = "{% url 'core.views.add_membership' group.pk %}">+ REQUEST TO JOIN GROUP</a><br>
 {% elif requested and not user_ismember %}
 <br><br>JOIN REQUEST SENT<br>
+{% elif requested and user_ismember.accepted and user.username != group.creator_id.pk %}
+<br><br><a href = "{% url 'core.views.deny_membership' user_ismember %}">LEAVE GROUP</a><br>
 {% endif %}
 
 <h3>MEMBERS</h3>
@@ -40,7 +69,7 @@ function toggleDiv(divId) {
 {% endfor %}
 
 <h3>NEWSFEED</h3>
-{% if user_ismember %}
+{% if user_ismember.accepted %}
 {% for update, comments in newsfeed %}
     <li> {{ update.user_id }} {% if update.completion %} completed {% else %} posted an update to {% endif %} goal <b>{{ update.goal_id }}</b> in category <i>{{ update.goal_id.goal_id }}</i> | {{ update.timestamp }}<br>
     <ul>{{ update.content }}<br>
