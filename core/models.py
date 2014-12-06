@@ -31,7 +31,7 @@ class Student(models.Model):
         
 """
 class LyfeUser(models.Model):
-    #default primary key id = lyfeuserID
+    # default primary key id = lyfeuserID
     username = models.CharField(max_length=30, primary_key = True)
     cur_points = models.IntegerField(default = '0')
     total_points = models.IntegerField(default = '0')
@@ -52,9 +52,19 @@ class LyfeUser(models.Model):
         return self.username
 
 class GoalGroup(models.Model):
-    #default primary key id = goalgroupID
+    # default primary key id = goalgroupID
     ownerid = models.ForeignKey(LyfeUser)
     name = models.CharField(max_length=30)
+    
+    PRIVATE = 0
+    PUBLIC = 1
+    FRIENDS = 2
+    DIFF_CHOICES = (
+        (PRIVATE, 'private'),
+        (PUBLIC, 'public'),
+        (FRIENDS, 'friends')
+    )
+    sharee = models.IntegerField(choices=DIFF_CHOICES, default=PUBLIC)
     
     class Meta:
         db_table = u'GoalGroup'
@@ -92,16 +102,6 @@ class Goal(models.Model):
     start_date = models.DateField(null=True, blank=True)
     completion_date = models.DateField(null = True, blank=True)
     
-    PRIVATE = 0
-    PUBLIC = 1
-    FRIENDS = 2
-    DIFF_CHOICES = (
-        (PRIVATE, 'private'),
-        (PUBLIC, 'public'),
-        (FRIENDS, 'friends')
-    )
-    sharee = models.IntegerField(choices=DIFF_CHOICES, default=PUBLIC)
-    
     class Meta:
         unique_together = ('goal_id', 'order_num')
         db_table = u'Goal'
@@ -109,7 +109,7 @@ class Goal(models.Model):
         return self.name
         
 class Group(models.Model):
-    #default primary key id
+    #default group id
     name = models.CharField(max_length=50)
     description = models.CharField(max_length=500)
     creator_id = models.ForeignKey(LyfeUser)
@@ -165,13 +165,13 @@ class RewardTransaction(models.Model):
   
 class Friend(models.Model):
     # unfriend removes entries
+    # inverse row entered after acceptance
     requester_id = models.ForeignKey(LyfeUser, related_name='requester_id')
     recipient_id = models.ForeignKey(LyfeUser, related_name='recipient_id')
     is_approved = models.BooleanField(default = False)
     request_time = models.DateTimeField(auto_now_add = True)
     approval_time = models.DateTimeField(null = True, blank = True)
     
-    # inverse row entered after acceptance
     class Meta:
         unique_together = ('requester_id', 'recipient_id')
         db_table = u'Friend'
