@@ -110,9 +110,10 @@ def share_settings(request, goalgroup):
     shareSettingForm.base_fields['group_id'].queryset = groups
     
     shareSettings = ShareSetting.objects.filter(goalgroup_id = goalGroup)
+    showGroups = len(groups) > 0
     
     return render_to_response('core/sharesettings.html',
-    { 'goalGroup' : goalGroup, 'shareSettings' : shareSettings, 'editGoalGroupForm' : editGoalGroupForm, 'shareSettingForm' : shareSettingForm },
+    { 'goalGroup' : goalGroup, 'shareSettings' : shareSettings, 'editGoalGroupForm' : editGoalGroupForm, 'showGroups' : showGroups, 'shareSettingForm' : shareSettingForm },
     context_instance=RequestContext(request))
     
 # get the queryset of groups that user is a member of that and isn't currently sharing with    
@@ -681,6 +682,14 @@ def approve_membership(request, membership):
 
 def deny_membership(request, membership):
     membership = Membership.objects.get(id = membership)
+    
+    # remove sharing with that group
+    if membership.accepted:
+        goalGroups = GoalGroup.objects.filter(ownerid = membership.user_id)
+        shareSettings = ShareSetting.objects.filter(group_id = membership.group_id, goalgroup_id__in = goalGroups)
+        for setting in shareSettings:
+            setting.delete()
+        
     membership.delete()
     
     return HttpResponseRedirect(request.META.get('HTTP_REFERER', '/'))

@@ -19,6 +19,7 @@
     <li>{{ setting.group_id }} | <a href = "{% url 'core.views.delete_share_setting' setting.pk %}">DELETE</a></li>
     {% endfor %}
     </ul> 
+     {% if showGroups %}
      <a href = "{% url 'core.views.add_all_sharesettings' goalGroup.pk %}">ADD ALL MY GROUPS</a><br>
      <form method="post" action="{% url 'core.views.add_share_setting' goalGroup.pk %}">
         {% csrf_token %}
@@ -27,6 +28,7 @@
         </p>
         <input type="submit" value="Add Group Rule"/>
      </form>
+     {% endif %}
     </div>                
 
 {% endblock %}
