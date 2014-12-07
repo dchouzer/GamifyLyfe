@@ -77,7 +77,7 @@ def dashboard(request):
     newsfeed = make_newsfeed(updates, lyfeuser, private = True, friends = True, gids = groups)
     
     # update form
-    updateform = modelform_factory(Update, fields = ('content', 'completion'), widgets = {'content': forms.Textarea}, labels = {'content' : ''})
+    updateform = modelform_factory(Update, fields = ('content', 'completion'), widgets = {'content': forms.Textarea(attrs={'placeholder' : 'REQUIRED: Description. Can only post an update once every 30 minutes.'})})
     
     # goal category form
     goal_groupform = modelform_factory(GoalGroup, fields=('name', 'sharee'), labels = {'name' : 'Category name'})
@@ -144,9 +144,10 @@ def add_share_setting(request, goalgroup):
     
     shareSettingForm = modelform_factory(ShareSetting, fields=('group_id',))
     shareForm = shareSettingForm(request.POST)
-    newShareSetting = shareForm.save(commit=False)
-    newShareSetting.goalgroup_id = goalGroup
-    newShareSetting.save()
+    if shareForm.is_valid():
+        newShareSetting = shareForm.save(commit=False)
+        newShareSetting.goalgroup_id = goalGroup
+        newShareSetting.save()
     
     return HttpResponseRedirect(request.META.get('HTTP_REFERER', '/'))
 
@@ -380,11 +381,10 @@ def post_update(request, goal):
     current_user = get_object_or_404(LyfeUser, pk=request.user.username)
     
     updateForm = UpdateForm(request.POST, request.FILES)
-    
+
     if updateForm.is_valid():
-        update = updateForm.save(commit=False)
         updatedGoal = Goal.objects.get(pk = goal)
-            
+        update = updateForm.save(commit = False)
         # allow goal updates to complete
         if update.completion:
             updatedGoal.status = 1 # complete
@@ -392,7 +392,7 @@ def post_update(request, goal):
             pointTotal = updatedGoal.base_points + updatedGoal.friend_points + updatedGoal.time_points
             current_user.cur_points += pointTotal
             current_user.total_points += pointTotal
-            
+          
             updatedGoal.save()
             current_user.save()
             
@@ -409,9 +409,7 @@ def post_update(request, goal):
             try:
                 lastupdate = Update.objects.filter(goal_id = updatedGoal.pk).latest('timestamp')
                 difference = datetime.now(UTC()) - lastupdate.timestamp
-                if difference.total_seconds() < 3600:
-                    #TODO show this: raise forms.ValidationError("You can't post an update until an hour after your last update!")  
-                    
+                if difference.total_seconds() < 1800: 
                     return HttpResponseRedirect(reverse('core.views.dashboard'))
             except Update.DoesNotExist:
                 pass
@@ -552,7 +550,7 @@ def add_friendpoint(request, goal):
     if current_user.pk != lyfeuser.pk:
         if current_user.last_fp_given:
             difference = datetime.now(UTC()) - current_user.last_fp_given
-            if difference.total_seconds() < 3600:
+            if difference.total_seconds() < 600:
             
                 return HttpResponseRedirect(reverse('core.views.profile', kwargs={'username' : lyfeuser.username}))
             
@@ -608,12 +606,15 @@ def group(request, group):
     updates = Update.objects.filter(user_id__in=members).order_by('timestamp').reverse()[:15]
     newsfeed = make_newsfeed(updates, current_user, gids = (group,))
     
+    # comment form
+    commentForm = modelform_factory(Comment, fields=('content',), labels = {'content' : 'comment'}, widgets = {'content': forms.TextInput(attrs={'placeholder' : 'Add comment'})})
+    
     # edit group form
     groupForm = modelform_factory(Group, fields=('name', 'description'))
     editGroupForm = groupForm(instance = group)
         
     return render_to_response('core/group.html',
-    { 'group' : group, 'user_ismember' : user_ismember, 'memberships' : memberships, 'members' : members, 'newsfeed' : newsfeed, 'logoform' : logoform, 'editGroupForm' : editGroupForm, 'requested' : requested},
+    { 'group' : group, 'user_ismember' : user_ismember, 'memberships' : memberships, 'members' : members, 'newsfeed' : newsfeed, 'commentForm' : commentForm, 'logoform' : logoform, 'editGroupForm' : editGroupForm, 'requested' : requested},
     context_instance=RequestContext(request))
 
 def new_group_logo(request, group):

@@ -72,7 +72,6 @@ class GoalGroup(models.Model):
         return self.name
 
 class Goal(models.Model):
-    # should be goalgroup_id
     goalgroup_id = models.ForeignKey(GoalGroup)
     order_num = models.IntegerField(default = '0') # 0 to multiple
     base_points = models.IntegerField()

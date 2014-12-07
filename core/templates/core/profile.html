@@ -49,7 +49,7 @@ function toggleDiv(divId) {
                         <ul>{% for goalupdate, comments in goalupdates %}
                             {{ goalupdate.timestamp }} {{ lyfeuser.username }} {% if goalupdate.completion %}completed goal: {% else %}posted update: {% endif %}{{ goalupdate.content }}<br>
                               
-                            <a href="javascript:toggleDiv('add_goalcomment_{{goalupdate.pk}}');">+ Show Comments ({{comments|length}})</a>
+                            <a href="javascript:toggleDiv('add_goalcomment_{{goalupdate.pk}}');">{% if comments|length > 0 %}+ Show Comments ({{comments|length}}){% else %}+ Comment {% endif %}</a>
                             <br>
                             <div style="display: none;" id = "add_goalcomment_{{goalupdate.pk}}">
                                 <ul>
@@ -98,7 +98,7 @@ function toggleDiv(divId) {
                     <ul>{% for goalupdate, comments in goalupdates %}
                         {{ goalupdate.timestamp }} {{ lyfeuser.username }} {% if goalupdate.completion %}completed goal: {% else %}posted update: {% endif %}{{ goalupdate.content }}<br>
                           
-                        <a href="javascript:toggleDiv('add_goalcomment_{{goalupdate.pk}}');">+ Show Comments ({{comments|length}})</a>
+                        <a href="javascript:toggleDiv('add_goalcomment_{{goalupdate.pk}}');">{% if comments|length > 0 %}+ Show Comments ({{comments|length}}){% else %}+ Comment {% endif %}</a>
                         <br>
                         <div style="display: none;" id = "add_goalcomment_{{goalupdate.pk}}">
                             <ul>
@@ -151,7 +151,7 @@ function toggleDiv(divId) {
             <li>{% if update.goal_id %}{{ update.user_id }}{% if update.completion %} completed {% else %} posted an update to {% endif %} goal <b>{{ update.goal_id }}</b> in category <i>{{ update.goal_id.goal_id }}</i> | {{ update.timestamp }}<br>
             <ul>{{ update.content }}<br>{% else %} {{ update.content }}<ul> {% endif %}
             
-            <a href="javascript:toggleDiv('add_comment_{{update.pk}}');">+ Show Comments ({{comments|length}})</a>
+            <a href="javascript:toggleDiv('add_comment_{{update.pk}}');">{% if comments|length > 0 %}+ Show Comments ({{comments|length}}){% else %}+ Comment {% endif %}</a>
             
             <div style="display: none;" id = "add_comment_{{update.pk}}">
                 <ul>
