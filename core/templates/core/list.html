@@ -3,7 +3,7 @@
 {% block heading %}Upload Avatar{% endblock %}
 
 {% block content %}    
-    <img src = "{{ current_user.avatar.url }}">
+    <img height = "100px" src = "{{ current_user.avatar.url }}">
     
     <form action="{% url 'core.views.avatar' %}" method="post" enctype="multipart/form-data">
         {% csrf_token %}
