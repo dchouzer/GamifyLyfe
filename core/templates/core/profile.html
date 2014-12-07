@@ -75,6 +75,7 @@ function toggleDiv(divId) {
                         </ul>
                     </div>
                 {% endif %}
+                </li>
             {% endfor %}
         </ul>
         </li>
@@ -144,7 +145,8 @@ function toggleDiv(divId) {
     <ul>
         {% for update, comments in newsfeed %}
             {% if update.public %}
-            <li>{% if update.goal_id %}{{ update.user_id }}{% if update.completion %} completed {% else %} posted an update to {% endif %} goal <b>{{ update.goal_id }}</b> in category <i>{{ update.goal_id.goal_id }}</i> | {{ update.timestamp }}<br>
+            <li>
+            {% if update.goal_id %}{{ update.user_id }}{% if update.completion %} completed {% else %} posted an update to {% endif %} goal <b>{{ update.goal_id }}</b> in category <i>{{ update.goal_id.goal_id }}</i> | {{ update.timestamp }}<br>
             <ul>{{ update.content }}<br>{% else %} {{ update.content }}<ul> {% endif %}
             
             <a href="javascript:toggleDiv('add_comment_{{update.pk}}');">{% if comments|length > 0 %}+ Show Comments ({{comments|length}}){% else %}+ Comment {% endif %}</a>
@@ -164,9 +166,9 @@ function toggleDiv(divId) {
                 {% endif %}
                 </ul>
             </div>
+            </ul>
             </li>
             {% endif %}
-            </ul>
         {% endfor %}
     </ul>
 {% endblock %}
