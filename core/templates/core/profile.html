@@ -141,7 +141,6 @@ function toggleDiv(divId) {
     </ul>
     
     <h3>NEWSFEED</h3>
-    
     <ul>
         {% for update, comments in newsfeed %}
             {% if update.public %}
@@ -156,7 +155,7 @@ function toggleDiv(divId) {
                 {% for comment in comments %}
                     {{ comment.timestamp }} | <b>{{ comment.creator_uid }}</b> commented: {{ comment.content }}<br>
                 {% endfor %}
-                {% if user.is_authenticated and friendship == True %}    
+                {% if user.is_authenticated and friendship == True or lyfeuser.username == user.username %}    
                 <form method="post" action="{% url 'core.views.add_comment' update.pk %}">
                 {% csrf_token %}
                 <p>
