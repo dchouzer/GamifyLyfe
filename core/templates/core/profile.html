@@ -27,7 +27,7 @@ function toggleDiv(divId) {
     
     <h3>GOALS</h3>
     <ul>
-    {% for goalgroup, groupgoals in activegoalitems %}
+    {% for goalgroup, groupgoals, sharegroups in activegoalitems %}
         <li>{{ goalgroup }}
         <ul>
             {% for goal, goalupdates in groupgoals %}
@@ -81,7 +81,7 @@ function toggleDiv(divId) {
     <a href="javascript:toggleDiv('inactive_goals');">+ Show Inactive Goals</a>
     <div style="display: none;" id = "inactive_goals">
     
-    {% for goalgroup, groupgoals in inactivegoalitems %}
+    {% for goalgroup, groupgoals, sharegroups in inactivegoalitems %}
     <li>{{ goalgroup }}
     <ul>
         {% for goal, goalupdates in groupgoals %}

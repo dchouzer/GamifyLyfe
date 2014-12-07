@@ -74,7 +74,7 @@ def dashboard(request):
     for update in updates:
         if not update.public and update.user_id != lyfeuser:
             updates.remove(update)
-    newsfeed = make_newsfeed(updates)
+    newsfeed = make_newsfeed(updates, lyfeuser, private = True, friends = True, gids = groups)
     
     # update form
     updateform = modelform_factory(Update, fields = ('content', 'completion'), widgets = {'content': forms.Textarea}, labels = {'content' : ''})
@@ -109,7 +109,7 @@ def share_settings(request, goalgroup):
     groups = get_shareable_groups(current_user, goalgroup)
     shareSettingForm.base_fields['group_id'].queryset = groups
     
-    shareSettings = ShareSetting.objects.filter(goal_id = goalGroup)
+    shareSettings = ShareSetting.objects.filter(goalgroup_id = goalGroup)
     
     return render_to_response('core/sharesettings.html',
     { 'goalGroup' : goalGroup, 'shareSettings' : shareSettings, 'editGoalGroupForm' : editGoalGroupForm, 'shareSettingForm' : shareSettingForm },
@@ -122,7 +122,7 @@ def get_shareable_groups(current_user, goalgroup):
     
     for group in memberof:
         try:
-            ShareSetting.objects.get(goal_id_id = goalgroup, group_id = group)
+            ShareSetting.objects.get(goalgroup_id_id = goalgroup, group_id = group)
         except ShareSetting.DoesNotExist:
             groupids.append(group)
             
@@ -144,7 +144,7 @@ def add_share_setting(request, goalgroup):
     shareSettingForm = modelform_factory(ShareSetting, fields=('group_id',))
     shareForm = shareSettingForm(request.POST)
     newShareSetting = shareForm.save(commit=False)
-    newShareSetting.goal_id = goalGroup
+    newShareSetting.goalgroup_id = goalGroup
     newShareSetting.save()
     
     return HttpResponseRedirect(request.META.get('HTTP_REFERER', '/'))
@@ -155,7 +155,7 @@ def add_all_sharesettings(request, goalgroup):
     
     groups = get_shareable_groups(current_user, goalgroup)
     for group in groups:
-        newSetting = ShareSetting(goal_id = goalGroup, group_id = group)
+        newSetting = ShareSetting(goalgroup_id = goalGroup, group_id = group)
         newSetting.save()
         
     return HttpResponseRedirect(request.META.get('HTTP_REFERER', '/'))
@@ -194,7 +194,24 @@ def profile(request, username):
         else:
             friendpoints = True
     
-    goalitems = make_goalitems(list(GoalGroup.objects.filter(ownerid = lyfeuser.pk)))
+    
+    validGoalGroups = []
+    goalgroups = list(GoalGroup.objects.filter(ownerid = lyfeuser.pk))
+    private = (current_user == lyfeuser)
+    for goalgroup in goalgroups:
+        if goalgroup.sharee == 1 or private or (friendship and goalgroup.sharee == 2):
+            validGoalGroups.append(goalgroup)
+        else:        
+            memberof = Membership.objects.filter(user_id = current_user).values_list('group_id', flat=True)
+            
+            for group in memberof:
+                try:
+                    ShareSetting.objects.get(goalgroup_id_id = goalgroup, group_id = group)
+                    validGoalGroups.append(goalgroup)
+                except ShareSetting.DoesNotExist:
+                    pass
+                    
+    goalitems = make_goalitems(validGoalGroups)  
     activegoalitems = goalitems[0]
     inactivegoalitems = goalitems[1]
     
@@ -202,15 +219,11 @@ def profile(request, username):
     friends = list(Friend.objects.filter(requester_id = lyfeuser, is_approved = True))
     
     # groups
-    memberships = Membership.objects.filter(user_id = lyfeuser, accepted = True)
-    groups = []
+    groups = get_groups(lyfeuser)
     
-    for membership in memberships:
-        groups.append(membership.group_id)
-
     # newsfeed
     updates = Update.objects.filter(user_id=lyfeuser).order_by('timestamp').reverse()[:15]
-    newsfeed = make_newsfeed(updates)
+    newsfeed = make_newsfeed(updates, current_user, private = (lyfeuser == current_user), friends = friendship, gids = get_groups(current_user))
     
     # comment form
     commentForm = modelform_factory(Comment, fields=('content',), labels = {'content' : 'comment'}, widgets = {'content': forms.TextInput(attrs={'placeholder' : 'Add comment'})})
@@ -220,36 +233,66 @@ def profile(request, username):
     context_instance=RequestContext(request))
     
 """ USER INFO HELPER METHODS """
+
+def get_groups(lyfeuser):
+    memberships = Membership.objects.filter(user_id = lyfeuser, accepted = True)
+    groups = []
+    
+    for membership in memberships:
+        groups.append(membership.group_id)
+        
+    return groups
+    
 def make_goalitems(goalgroups):
     activegoalitems = []
     inactivegoalitems = []
     
     for goalgroup in goalgroups:
-        goals = Goal.objects.filter(goal_id = goalgroup.pk).order_by('order_num')
+        sharegroups = (len(ShareSetting.objects.filter(goalgroup_id = goalgroup)) > 0)
+            
+        goals = Goal.objects.filter(goalgroup_id = goalgroup.pk).order_by('order_num')
         goalobject = []
         for goal in goals:
             tuple = (goal, make_newsfeed(Update.objects.filter(goal_id = goal)))
             goalobject.append(tuple)
             
-        goalitem = (goalgroup, goalobject)
+        goalitem = (goalgroup, goalobject, sharegroups)
 
         try:
-            Goal.objects.get(goal_id = goalgroup.pk, status = 0)
+            Goal.objects.get(goalgroup_id = goalgroup.pk, status = 0)
             activegoalitems.append(goalitem)
         except Goal.DoesNotExist:
             inactivegoalitems.append(goalitem)
     
     return (activegoalitems, inactivegoalitems)
     
-def make_newsfeed(updates):
+# check for viewability and attach comments
+def make_newsfeed(updates, current_user = None, private = False, friends = False, gids = None):
     newsfeed = []
     
-    # attach comments
+    # Terrible logical making newsfeed based on settings and the environment in which it's being viewed... there's probably a much better way to do this.
     for newsitem in updates:
-        comments = Comment.objects.filter(update_id=newsitem).order_by('timestamp')
-        tuple = (newsitem, comments)
-        newsfeed.append(tuple)
-
+        if newsitem.goal_id:
+            goalgroup = newsitem.goal_id.goalgroup_id
+        
+            if gids:
+                try:
+                    ShareSetting.objects.get(group_id__in = gids, goalgroup_id = goalgroup)
+                    comments = Comment.objects.filter(update_id=newsitem).order_by('timestamp')
+                    tuple = (newsitem, comments)
+                    newsfeed.append(tuple)
+                except ShareSetting.DoesNotExist:
+                    pass
+                    
+            if (goalgroup.sharee == 1) or (private and newsitem.user_id == current_user) or (friends and goalgroup.sharee == 2):
+                comments = Comment.objects.filter(update_id=newsitem).order_by('timestamp')
+                tuple = (newsitem, comments)
+                newsfeed.append(tuple)
+        else:
+            comments = Comment.objects.filter(update_id=newsitem).order_by('timestamp')
+            tuple = (newsitem, comments)
+            newsfeed.append(tuple)
+            
     return newsfeed
     
 """ PROFILE """   
@@ -353,7 +396,7 @@ def post_update(request, goal):
             current_user.save()
             
             try:
-                nextGoal = Goal.objects.get(goal_id = updatedGoal.goal_id, order_num = updatedGoal.order_num+1)
+                nextGoal = Goal.objects.get(goalgroup_id = updatedGoal.goalgroup_id, order_num = updatedGoal.order_num+1)
                 nextGoal.status = 0 # active
                 nextGoal.start_date = date.today()
                 nextGoal.save()
@@ -401,7 +444,7 @@ def add_goal(request):
     if goalFormSet.is_valid():
         for goalForm in goalFormSet:
             goal = goalForm.save(commit=False)
-            goal.goal_id = goalGroup
+            goal.goalgroup_id = goalGroup
             goal.start_date = date.today()
             if goal.difficulty == 0:
                 goal.base_points = 10
@@ -424,7 +467,7 @@ def delete_goal(request, goal):
         
         while processing:
             try:
-                updategoal = Goal.objects.get(goal_id = deletegoal.goal_id, order_num = index)
+                updategoal = Goal.objects.get(goalgroup_id = deletegoal.goalgroup_id, order_num = index)
                 updategoal.order_num -= 1
                 index += 1
                 updategoal.save()
@@ -444,7 +487,7 @@ def delete_goalgroup(request, goalgroup):
 def flip_goals(request, goal, neworder_num):
     try:
         goalone = Goal.objects.get(pk = goal)
-        goaltwo = Goal.objects.get(goal_id = goalone.goal_id, order_num = neworder_num)
+        goaltwo = Goal.objects.get(goalgroup_id = goalone.goalgroup_id, order_num = neworder_num)
         
         oldorder_num = goalone.order_num
         newstatus = goaltwo.status
@@ -477,10 +520,10 @@ def add_actionitem(request, goalgroup):
     newGoal = GoalForm(request.POST, request.FILES)
     if newGoal.is_valid():
         goal = newGoal.save(commit=False)
-        goal.goal_id_id = goalgroup
+        goal.goalgroup_id_id = goalgroup
         
         try:
-            Goal.objects.get(goal_id_id = goalgroup, status = 0)
+            Goal.objects.get(goalgroup_id_id = goalgroup, status = 0)
             goal.status = -1 #future
         except Goal.DoesNotExist:
             goal.status = 0 # active
@@ -493,7 +536,7 @@ def add_actionitem(request, goalgroup):
         elif goal.difficulty == 2:
             goal.base_points = 40
         
-        goal.order_num = len(list(Goal.objects.filter(goal_id_id=goalgroup)))
+        goal.order_num = len(list(Goal.objects.filter(goalgroup_id_id=goalgroup)))
     
         goal.save()
         
@@ -502,7 +545,7 @@ def add_actionitem(request, goalgroup):
 def add_friendpoint(request, goal):
     current_user = get_object_or_404(LyfeUser, pk=request.user.username)
     goal = Goal.objects.get(pk = goal)
-    lyfeuser = goal.goal_id.ownerid
+    lyfeuser = goal.goalgroup_id.ownerid
     
     # check for cheating
     if current_user.pk != lyfeuser.pk:
@@ -562,7 +605,7 @@ def group(request, group):
 
     # newsfeed
     updates = Update.objects.filter(user_id__in=members).order_by('timestamp').reverse()[:15]
-    newsfeed = make_newsfeed(updates)
+    newsfeed = make_newsfeed(updates, current_user, gids = (group,))
     
     # edit group form
     groupForm = modelform_factory(Group, fields=('name', 'description'))

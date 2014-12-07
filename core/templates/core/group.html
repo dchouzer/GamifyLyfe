@@ -71,9 +71,10 @@ function toggleDiv(divId) {
 <h3>NEWSFEED</h3>
 {% if user_ismember.accepted %}
 {% for update, comments in newsfeed %}
-    <li> {{ update.user_id }} {% if update.completion %} completed {% else %} posted an update to {% endif %} goal <b>{{ update.goal_id }}</b> in category <i>{{ update.goal_id.goal_id }}</i> | {{ update.timestamp }}<br>
-    <ul>{{ update.content }}<br>
-    
+    {% if update.public %}           
+    <li>{% if update.goal_id and update.public %}{{ update.user_id }}{% if update.completion %} completed {% else %} posted an update to {% endif %} goal <b>{{ update.goal_id }}</b> in category <i>{{ update.goal_id.goal_id }}</i> | {{ update.timestamp }}<br>
+    <ul>{{ update.content }}<br>{% else %} {{ update.content }}<ul> {% endif %}
+  
     <a href="javascript:toggleDiv('add_comment_{{update.pk}}');">+ Show Comments ({{comments|length}})</a>
     
     <div style="display: none;" id = "add_comment_{{update.pk}}">
@@ -93,6 +94,7 @@ function toggleDiv(divId) {
         </ul>
     </div>
     </ul>
+    {% endif %}
 {% endfor %}
 {% else %}
 Join group to see newsfeed

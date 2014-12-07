@@ -72,7 +72,8 @@ class GoalGroup(models.Model):
         return self.name
 
 class Goal(models.Model):
-    goal_id = models.ForeignKey(GoalGroup)
+    # should be goalgroup_id
+    goalgroup_id = models.ForeignKey(GoalGroup)
     order_num = models.IntegerField(default = '0') # 0 to multiple
     base_points = models.IntegerField()
     friend_points = models.IntegerField(default = '0')
@@ -103,7 +104,7 @@ class Goal(models.Model):
     completion_date = models.DateField(null = True, blank=True)
     
     class Meta:
-        unique_together = ('goal_id', 'order_num')
+        unique_together = ('goalgroup_id', 'order_num')
         db_table = u'Goal'
     def __unicode__(self):
         return self.name
@@ -133,14 +134,14 @@ class Membership(models.Model):
         
 class ShareSetting(models.Model):
     # should probably be named goalgroup_id, however everything will break if I change this again
-    goal_id = models.ForeignKey(GoalGroup) 
+    goalgroup_id = models.ForeignKey(GoalGroup) 
     group_id = models.ForeignKey(Group)
     
     class Meta:
-        unique_together = ('goal_id', 'group_id')
+        unique_together = ('goalgroup_id', 'group_id')
         db_table = u'ShareSetting'
     def __unicode__(self):
-        return self.goal_id.name + " with " + self.group_id.name
+        return self.goalgroup_id.name + " with " + self.group_id.name
         
 class Reward(models.Model):
     # default reward id

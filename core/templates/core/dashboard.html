@@ -102,8 +102,8 @@ function toggleDiv(divId) {
     
     <h3>GOAL MANAGEMENT</h3>
     <ul>
-    {% for goalgroup, groupgoals in activegoalitems %}
-        <li>{{ goalgroup }} | Shared with: {{ goalgroup.get_sharee_display }} <a href="{% url 'core.views.share_settings' goalgroup.pk %}"> > Change Share Settings</a>
+    {% for goalgroup, groupgoals, sharegroups in activegoalitems %}
+        <li>{{ goalgroup }} | Shared with: {{ goalgroup.get_sharee_display }}{% if sharegroups %}, groups {% endif %} <a href="{% url 'core.views.share_settings' goalgroup.pk %}"> > Change Share Settings</a>
         <ul>
             {% for goal, updates in groupgoals %}
                 {% if goal.order_num == 0 and goal.status == 0 %}
@@ -154,8 +154,8 @@ function toggleDiv(divId) {
         <a href="javascript:toggleDiv('inactive_goals');">+ Show Inactive Goals</a>
         <div style="display: none;" id = "inactive_goals">
         
-        {% for goalgroup, groupgoals in inactivegoalitems %}
-        <li>{{ goalgroup }}
+        {% for goalgroup, groupgoals, sharegroups in inactivegoalitems %}
+        <li>{{ goalgroup }} | Shared with: {{ goalgroup.get_sharee_display }}{% if sharegroups %}, groups {% endif %} <a href="{% url 'core.views.share_settings' goalgroup.pk %}"> > Change Share Settings</a>
         <ul>
             {% for goal, goalupdates in groupgoals %}
                 <li><span class="{{goal.get_status_display}}"><b>{{ goal }}</b></span> ({{goal.get_status_display}})
