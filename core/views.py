@@ -45,7 +45,7 @@ def logout(request):
 def dashboard(request):
     """ The main homepage for managing goals """
     lyfeuser = get_object_or_404(LyfeUser, pk=request.user.username)
-    goalitems = make_goalitems(list(GoalGroup.objects.filter(ownerid=lyfeuser.pk)))
+    goalitems = make_goalitems(lyfeuser, list(GoalGroup.objects.filter(ownerid=lyfeuser.pk)))
     activegoalitems = goalitems[0]
     inactivegoalitems = goalitems[1]
     
@@ -110,7 +110,7 @@ def get_groups(lyfeuser):
         
     return groups
     
-def make_goalitems(goalgroups):
+def make_goalitems(current_user, goalgroups):
     """ Get a user's active and inactive goalitem tuples: goalgroup, goals and newsfeeds, and whether any groups are being explicitly shared with """
     activegoalitems = []
     inactivegoalitems = []
@@ -121,7 +121,8 @@ def make_goalitems(goalgroups):
         goals = Goal.objects.filter(goalgroup_id=goalgroup.pk).order_by('order_num')
         goalobject = []
         for goal in goals:
-            tuple = (goal, make_newsfeed(Update.objects.filter(goal_id=goal)))
+            # this logic isn't needed, it's already accounted for
+            tuple = (goal, make_newsfeed(Update.objects.filter(goal_id=goal, public=True), private=True, current_user=current_user, friends = True, gids = get_groups(current_user)))
             goalobject.append(tuple)
             
         goalitem = (goalgroup, goalobject, sharegroups)
@@ -142,20 +143,21 @@ def make_newsfeed(updates, current_user=None, private=False, friends=False, gids
     for newsitem in updates:
         if newsitem.goal_id:
             goalgroup = newsitem.goal_id.goalgroup_id
-        
-            if gids:
-                try:
-                    ShareSetting.objects.get(group_id__in=gids, goalgroup_id=goalgroup)
-                    comments = Comment.objects.filter(update_id=newsitem).order_by('timestamp')
-                    tuple = (newsitem, comments)
-                    newsfeed.append(tuple)
-                except ShareSetting.DoesNotExist:
-                    pass
+
                     
             if (goalgroup.sharee == 1) or (private and newsitem.user_id == current_user) or (friends and goalgroup.sharee == 2):
                 comments = Comment.objects.filter(update_id=newsitem).order_by('timestamp')
                 tuple = (newsitem, comments)
                 newsfeed.append(tuple)
+            else:           
+                if gids:
+                    try:
+                        ShareSetting.objects.filter(group_id__in=gids, goalgroup_id=goalgroup)
+                        comments = Comment.objects.filter(update_id=newsitem).order_by('timestamp')
+                        tuple = (newsitem, comments)
+                        newsfeed.append(tuple)
+                    except ShareSetting.DoesNotExist:
+                        pass
         else:
             comments = Comment.objects.filter(update_id=newsitem).order_by('timestamp')
             tuple = (newsitem, comments)
@@ -498,7 +500,7 @@ def profile(request, username):
                 except ShareSetting.DoesNotExist:
                     pass
                     
-    goalitems = make_goalitems(validGoalGroups)  
+    goalitems = make_goalitems(current_user, validGoalGroups)  
     activegoalitems = goalitems[0]
     inactivegoalitems = goalitems[1]
     
