@@ -13,28 +13,29 @@
   </head>
   <body>
   <div id = "wrapper">
-    <h1><img src="{{STATIC_URL}}core/img/GamifyLyfe.png" style="float:right"/><a href="{% url 'core.views.home' %}">Gamify Lyfe</a></h1>
-    <hr/>
-    <h2 id="heading">{% block heading %}{% endblock %}</h2>
+    <h1><a href="{% url 'core.views.home' %}"><img src="{{STATIC_URL}}core/img/GamifyLyfe.png" style="float:right"/></a>{% block heading %}{% endblock %}</a></h1>
+    
+    <h5>
     {% if user.is_authenticated %}
-      <p>Welcome, {{user|user_greeting_name}}!<br/>
+    Welcome, <a href = "{% url 'core.views.profile' user.username %}">{{user|user_greeting_name}}</a>! | <a href = "{% url 'core.views.dashboard' %}">Dashboard</a> | <a href = "{% url 'core.views.rewards' %}">Rewards</a> | Search | 
+      <!-- <p>Welcome, {{user|user_greeting_name}}!<br/>
          You are authenticated as
          {% for auth in social_auth.associated %}
            {{auth.user}} ({{auth.provider}}){% if forloop.last %}.{% else %}, {% endif %}
          {% empty %}
            {{user}} (local Django).
          {% endfor %}
-         </p>
+         </p> -->
     {% endif %}
     {% block login %}
       {% if not user.is_authenticated %}
-        <p><a href="{% url 'core.views.login' %}?next={{request.get_full_path}}">Login</a></p>
+        <a href="{% url 'core.views.login' %}?next={{request.get_full_path}}">Login</a>
       {% else %}
-        <p><a href="{% url 'core.views.logout' %}">Logout</a></p>
+        <a href="{% url 'core.views.logout' %}">Logout</a>
       {% endif %}
     {% endblock %}
-    {% if error_message %}<p><strong>{{error_message}}</strong></p>{% endif %}
-
+    </h5>
+    <hr/>
     <div id="content">{% block content %}{% endblock %}</div>
     <hr/>
     </div>

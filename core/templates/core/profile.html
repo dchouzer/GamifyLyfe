@@ -10,21 +10,25 @@ function toggleDiv(divId) {
 {% endblock %}
 {% block content %}
 {% load extras %}
+
+    <img height = "100px" src="{{ lyfeuser.avatar.url }}" /><br>
+    Points: {{ lyfeuser.cur_points }} / {{ lyfeuser.total_points }}<br><br>
+    
 {% if addfriend %}
 <a href="{% url 'core.views.addfriend' lyfeuser.username %}">+ Add Friend/Follow</a>
 {% elif lyfeuser.username != user.username and user.is_authenticated %}
 <a href="{% url 'core.views.unfriend' lyfeuser.username %}">- Unfriend/Unfollow</a>
 {% endif %}
 
-    <h3>PROFILE INFORMATION</h3>
-    <ul>
-    <li>Points: {{ lyfeuser.cur_points }} / {{ lyfeuser.total_points }}</li>
-    <li>Last active date? {{ lyfeuser.last_active_date }}</li>
-    <li>Last Friend Points Given: {{ lyfeuser.last_fp_given }}</li>
-    <li>Avatar: <br>
-    <img height = "100px" src="{{ lyfeuser.avatar.url }}" /></li>
-    </ul>
-    
+    <h3>FRIENDS</h3>
+    {% if friends %}
+        {% for friend in friends %}
+            <a href = "{% url 'core.views.profile' friend.recipient_id %}"><img height = "50px" src = "{{friend.recipient_id|user_avatar_url}}"></a>
+        {% endfor %}
+        {% else %}
+        No friends :(
+    {% endif %}
+    <br>
     <h3>GOALS</h3>
     <ul>
     {% for goalgroup, groupgoals, sharegroups in activegoalitems %}
@@ -127,7 +131,7 @@ function toggleDiv(divId) {
     </div>
     {% endif %}
     </ul>
-    
+
     <h3>GROUPS</h3>
     <ul>
     {% for group in groups %}
@@ -136,15 +140,7 @@ function toggleDiv(divId) {
     </ul>
     
     <h3>NEWSFEED</h3>
-    <h5>FRIENDS</h5>
-    {% if friends %}
-        {% for friend in friends %}
-            <a href = "{% url 'core.views.profile' friend.recipient_id %}"><img height = "50px" src = "{{friend.recipient_id|user_avatar_url}}"></a>
-        {% endfor %}
-        {% else %}
-        No friends :(
-    {% endif %}
-    <br><br>
+    
     <ul>
         {% for update, comments in newsfeed %}
             {% if update.public %}

@@ -10,17 +10,18 @@ function toggleDiv(divId) {
 
 {% block content %}
 {% load extras %}
+        
+    <h5>FRIENDS</h5>
+    {% if friends %}
+        {% for friend in friends %}
+            <a href = "{% url 'core.views.profile' friend.recipient_id %}"><img height = "50px" src = "{{friend.recipient_id|user_avatar_url}}"></a>
+        {% endfor %}
+        {% else %}
+        No friends :(
+    {% endif %}
+    <br>
     
-    <h3>NAVIGATION</h3>
-    <ul>
-    <li><a href = "{% url 'core.views.rewards' %}">Rewards</a></li>
-    </ul>
-    
-    <h3>ME</h3>
-    <a href = "{% url 'core.views.avatar' %}"><img height="100px" src="{{ lyfeuser.avatar.url }}" /></a><br>
-    Points: {{ lyfeuser.cur_points }} / {{ lyfeuser.total_points }}
-    
-    {% if friend_requests %}
+   {% if friend_requests %}
         <h3>FRIEND REQUESTS</h3>
         
         {% for request in friend_requests %}
@@ -38,7 +39,7 @@ function toggleDiv(divId) {
         {% endfor %}
     {% endif %}
     
-    <h3>ACTIVE GOAL OVERVIEW</h3>
+    <div style = "float: left; width: 70%; "><h3>ACTIVE GOAL OVERVIEW</h3>
     <ul>
     {% for goalgroup, groupgoals in activegoalitems %}
         <li>{{ goalgroup }}
@@ -100,7 +101,15 @@ function toggleDiv(divId) {
         </li>
     {% endfor %}
     </ul>
+    </div>
     
+    <div style = "float: left; ">
+    <h3>ME</h3>
+    <a href = "{% url 'core.views.avatar' %}"><img height="100px" src="{{ lyfeuser.avatar.url }}" /></a><br>
+    Points: {{ lyfeuser.cur_points }} / {{ lyfeuser.total_points }}
+    </div>
+    
+    <div style="clear: both;">
     <h3>GOAL MANAGEMENT</h3>
     <ul>
     {% for goalgroup, groupgoals, sharegroups in activegoalitems %}
@@ -183,6 +192,7 @@ function toggleDiv(divId) {
         </div>
         {% endif %}
     </ul>
+    </div>
     
     <h3>MY GROUPS</h3>
     <ul>
@@ -205,15 +215,6 @@ function toggleDiv(divId) {
         </div>
         
     <h3>NEWSFEED</h3>
-    <h5>FRIENDS</h5>
-    {% if friends %}
-        {% for friend in friends %}
-            <a href = "{% url 'core.views.profile' friend.recipient_id %}"><img height = "50px" src = "{{friend.recipient_id|user_avatar_url}}"></a>
-        {% endfor %}
-        {% else %}
-        No friends :(
-    {% endif %}
-    <br><br>
     <ul>
         {% for update, comments in newsfeed %}
             <li>{% if update.goal_id and update.public %}{{ update.user_id }}{% if update.completion %} completed {% else %} posted an update to {% endif %} goal <b>{{ update.goal_id }}</b> in category <i>{{ update.goal_id.goal_id }}</i> | {{ update.timestamp }}<br>
