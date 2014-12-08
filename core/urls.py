@@ -6,11 +6,12 @@ from django.contrib.staticfiles.urls import staticfiles_urlpatterns
 if settings.DEBUG:
 	urlpatterns = patterns('core.views',
 	    url(r'^$', 'home'),
-	    url(r'^login$', 'login'),
 	    url(r'^logout$', 'logout'),
+	    url(r'^login_test$', 'login_test'),
         url(r'^register$', 'register'),
 	    url(r'^dashboard$', 'dashboard'),
 	    url(r'^rewards$', 'rewards'),
+	    url(r'^search$', 'search'),
 	    url(r'^avatar$', 'avatar'),
 	    url(r'^share_settings/(?P<goalgroup>[^/]+)$', 'share_settings'),
 	    url(r'^edit_sharee/(?P<goalgroup>[^/]+)$', 'edit_sharee'),

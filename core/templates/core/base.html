@@ -17,7 +17,7 @@
     
     <h5>
     {% if user.is_authenticated %}
-    Welcome, <a href = "{% url 'core.views.profile' user.username %}">{{user|user_greeting_name}}</a>! | <a href = "{% url 'core.views.dashboard' %}">Dashboard</a> | <a href = "{% url 'core.views.rewards' %}">Rewards</a> | Search | 
+    Welcome, <a href = "{% url 'core.views.profile' user.username %}">{{user|user_greeting_name}}</a>! | <a href = "{% url 'core.views.dashboard' %}">Dashboard</a> | <a href = "{% url 'core.views.rewards' %}">Rewards</a> | 
       <!-- <p>Welcome, {{user|user_greeting_name}}!<br/>
          You are authenticated as
          {% for auth in social_auth.associated %}
@@ -29,10 +29,15 @@
     {% endif %}
     {% block login %}
       {% if not user.is_authenticated %}
-        <a href="{% url 'core.views.login' %}?next={{request.get_full_path}}">Login</a>
+        <a href="{% url 'django.contrib.auth.views.login' %}?next={{request.get_full_path}}">Login</a>
       {% else %}
         <a href="{% url 'core.views.logout' %}">Logout</a>
       {% endif %}
+      
+    <form style = "float:right" action="{% url 'core.views.search' %}" method="get">
+        <input type="text" name="query">
+        <input type="submit" value="Search">
+    </form>
     {% endblock %}
     </h5>
     <hr/>

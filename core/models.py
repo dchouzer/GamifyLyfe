@@ -146,7 +146,7 @@ class Reward(models.Model):
     # default reward id
     user_id = models.ForeignKey(LyfeUser)
     description = models.CharField(max_length=50)
-    worth = models.IntegerField()
+    worth = models.PositiveIntegerField()
     multiples = models.BooleanField(default = True)
     retired = models.BooleanField(default = False)
     

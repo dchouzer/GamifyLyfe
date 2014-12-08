@@ -1,0 +1,18 @@
+{% extends "core/base.html" %}
+
+{% block heading %}Search {{ query }}{% endblock %}
+
+{% block content %}    
+    <h3>Group Results</h3>
+    <ul>
+        {% for result in groupresults %}
+            <li><a href = "{% url 'core.views.group' result.pk %}">{{ result }}</a></li>
+        {% endfor %}
+    </ul>
+    <h3>User Results</h3>
+    <ul>
+        {% for result in userresults %}
+            <li><a href = "{% url 'core.views.profile' result.username %}">{{ result }}</a></li>
+        {% endfor %}
+    </ul>
+{% endblock %}

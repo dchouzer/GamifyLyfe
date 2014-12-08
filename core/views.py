@@ -1,5 +1,6 @@
 from datetime import date, datetime, tzinfo, timedelta
 
+from django.db.models import Q
 from django import forms
 from django.db import IntegrityError
 from django.template import RequestContext
@@ -33,14 +34,30 @@ def register(request):
         { 'form': form, },
         context_instance=RequestContext(request))
 
-def login(request):
+def login_test(request):
+    auth_logout(request)    
+    
     return render_to_response('core/login.html',
-        {},
+        { },
         context_instance=RequestContext(request))
-
+    
 def logout(request):
     auth_logout(request)
     return HttpResponseRedirect(reverse('django.contrib.auth.views.login'))
+    
+def search(request):
+    """ Returns the results of a search """
+    if 'query' in request.GET:
+        query = request.GET['query']
+    
+    groupquery = Q(name__icontains=query ) | Q(description__icontains=query )
+    groupresults = Group.objects.filter(groupquery)
+    
+    userresults = LyfeUser.objects.filter(username__icontains=query)
+    
+    return render_to_response('core/search.html',
+        { 'query' : query, 'groupresults' : groupresults, 'userresults' : userresults},
+        context_instance=RequestContext(request))
 
 def dashboard(request):
     """ The main homepage for managing goals """
@@ -143,21 +160,17 @@ def make_newsfeed(updates, current_user=None, private=False, friends=False, gids
     for newsitem in updates:
         if newsitem.goal_id:
             goalgroup = newsitem.goal_id.goalgroup_id
-
-                    
+ 
             if (goalgroup.sharee == 1) or (private and newsitem.user_id == current_user) or (friends and goalgroup.sharee == 2):
                 comments = Comment.objects.filter(update_id=newsitem).order_by('timestamp')
                 tuple = (newsitem, comments)
                 newsfeed.append(tuple)
             else:           
                 if gids:
-                    try:
-                        ShareSetting.objects.filter(group_id__in=gids, goalgroup_id=goalgroup)
+                    if len(ShareSetting.objects.filter(group_id__in=gids, goalgroup_id=goalgroup)) > 0:
                         comments = Comment.objects.filter(update_id=newsitem).order_by('timestamp')
                         tuple = (newsitem, comments)
                         newsfeed.append(tuple)
-                    except ShareSetting.DoesNotExist:
-                        pass
         else:
             comments = Comment.objects.filter(update_id=newsitem).order_by('timestamp')
             tuple = (newsitem, comments)
@@ -727,8 +740,9 @@ def add_reward(request):
     RewardForm = modelform_factory(Reward, fields=('description', 'worth', 'multiples'))
     rewardForm = RewardForm(request.POST)
     reward = rewardForm.save(commit=False)
-    reward.user_id = current_user
-    reward.save()
+    if reward.worth > 0:
+        reward.user_id = current_user
+        reward.save()
     
     return HttpResponseRedirect(reverse('core.views.rewards'))
     

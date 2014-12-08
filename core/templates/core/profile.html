@@ -65,7 +65,7 @@ function toggleDiv(divId) {
                                 <form method="post" action="{% url 'core.views.add_comment' goalupdate.pk %}">
                                 {% csrf_token %}
                                 <p>
-                                    <img src = "{{ lyfeuser| user_avatar_url}}" height = "50px"> {{ commentForm.content }}
+                                    <img src = "{{ user.username | user_avatar_url}}" height = "50px"> {{ commentForm.content }}
                                 </p>
                                 </form>
                                 {% endif %}
