@@ -122,7 +122,8 @@ function toggleDiv(divId) {
                 <!-- are you sure you want to delete this category? -->
                 {% endif %}
                 <li>
-                <span class="{{goal.get_status_display}}"><b>{{ goal }}</b></span> ({{goal.get_status_display}})
+                {% if goal.status == -1 %} <a href = "{% url 'core.views.flip_goals' goal.pk goal.order_num|add:'-1' %}"><img height="20px" src = "{{STATIC_URL}}core/img/UpArrow.png" /></a>{% else %}&nbsp;&nbsp;&nbsp;&nbsp;{% endif %} {% if goal.status != 1 %}<a href = "{% url 'core.views.flip_goals' goal.pk goal.order_num|add:'1' %}"><img height="20px" src = "{{STATIC_URL}}core/img/DownArrow.png" /></a>{% else %}&nbsp;&nbsp;&nbsp;&nbsp;{% endif %}
+                | <span class="{{goal.get_status_display}}"><b>{{ goal }}</b></span> ({{goal.get_status_display}})
                 
                 {% if goal.status == -1 %}
                  | <a href = "{% url 'core.views.delete_goal' goal.pk %}">Delete Goal</a>
@@ -130,7 +131,7 @@ function toggleDiv(divId) {
                 {% endif %}
                 
                 <br>
-                {% if goal.status == -1 %} <a href = "{% url 'core.views.flip_goals' goal.pk goal.order_num|add:'-1' %}">MOVE UP</a> | {% endif %} {% if goal.status != 1 %}<a href = "{% url 'core.views.flip_goals' goal.pk goal.order_num|add:'1' %}">MOVE DOWN</a><br>{% endif %}
+                
                 </li>
             {% endfor %}
             <a href="javascript:toggleDiv('add_actionitem_{{goalgroup.pk}}{{goal.pk}}');">+ Add new goal</a>

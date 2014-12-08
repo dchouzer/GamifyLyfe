@@ -35,7 +35,6 @@ def register(request):
         context_instance=RequestContext(request))
 
 def login_test(request):
-    auth_logout(request)    
     
     return render_to_response('core/login.html',
         { },
