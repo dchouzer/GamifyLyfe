@@ -3,6 +3,15 @@ gamify-lyfe
 
 CS316 - An achievement-based approach to life.
 
+Extra README information for final project submission
+=====================================================
+Code is structured like a typical Django project - one module "core" contains our project.
+
+Assuming django project is set up with setup-django.sh methods:
+python manage.py syncdb (or makemigrations if necessary) should set up the db
+python manage.py runserver 0.0.0.0:8000
+Go to localhost:8000/core to visit site.
+
 Setting up for local (vagrant) development
 ==========================================
 

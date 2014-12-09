@@ -7,7 +7,6 @@ if settings.DEBUG:
 	urlpatterns = patterns('core.views',
 	    url(r'^$', 'home'),
 	    url(r'^logout$', 'logout'),
-	    url(r'^login_test$', 'login_test'),
         url(r'^register$', 'register'),
 	    url(r'^dashboard$', 'dashboard'),
 	    url(r'^rewards$', 'rewards'),

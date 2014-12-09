@@ -27,19 +27,13 @@ def register(request):
         form = MyRegistrationForm(request.POST)
         if form.is_valid():
             form.save()
-            return HttpResponseRedirect(reverse(('core.views.login')))
+            return HttpResponseRedirect(reverse(('django.contrib.auth.views.login')))
     else:
         form = MyRegistrationForm()
     return render_to_response('core/register.html',
         { 'form': form, },
         context_instance=RequestContext(request))
 
-def login_test(request):
-    
-    return render_to_response('core/login.html',
-        { },
-        context_instance=RequestContext(request))
-    
 def logout(request):
     auth_logout(request)
     return HttpResponseRedirect(reverse('django.contrib.auth.views.login'))
